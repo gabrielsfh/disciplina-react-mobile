@@ -1,11 +1,12 @@
 import { View, StyleSheet } from 'react-native'
 import Hello from './components/Hello';
+import Greeting from './components/Greeting'
 
 export default function App() {
   return (
     <View style={styles.container}>
       <Hello/>
-      <Hello/>
+      <Greeting name="Rafael"/>
     </View>
   );
 }
