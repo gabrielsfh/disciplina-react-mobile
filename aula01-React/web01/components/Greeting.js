@@ -2,10 +2,10 @@ import { Text, View, StyleSheet } from 'react-native';
 
 
 
-export default function Greeting( {name} ) {
+export default function Greeting( props ) {
   return (
     <View style={styles.container}>
-          <Text style={styles.text}>Hello {name}</Text>
+          <Text style={styles.text}>Hello {props.name}</Text>
     </View>
   );
 }
@@ -19,8 +19,11 @@ const styles = StyleSheet.create({
     },
     text:{
       fontSize: 100,
+      fontFamily: "Comic Sans MS",
       textAlign: 'center', 
       margin:10,
+      color: "red",
+      backgroundColor: "blue"
     }
   });
   

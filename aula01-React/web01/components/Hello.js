@@ -1,9 +1,10 @@
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet, Image } from 'react-native';
 
 export default function Hello() {
   return (
     <View style={styles.container}>
           <Text style={styles.text}>Hello, World!!</Text>
+        
     </View>
   );
 }
@@ -16,7 +17,7 @@ const styles = StyleSheet.create({
       padding: 8,
     },
     text:{
-      fontSize: 100,
+      fontSize: 30,
       textAlign: 'center', 
       margin:10,
     }
