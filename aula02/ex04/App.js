@@ -1,21 +1,21 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import '@expo/metro-runtime';
 
-function CustomButton({title, onPress}){
-  return(
+function CustomButton({title, onPress}) {
+  return (
     <TouchableOpacity style={styles.button} onPress={onPress}>
-      <Text style={styles.text} >{title}</Text>
+      <Text style={styles.text}>{title}</Text>
     </TouchableOpacity>
-  )
+  );
 }
 
 export default function App() {
   return (
-    <View styles={styles.container}>
-    <CustomButton
-    title="Clique aqui" 
-    onPress={() => alert('Botão pressionado!')}
-    />
+    <View style={styles.container}>
+      <CustomButton
+        title="Clique aqui"
+        onPress={() => alert('Botão pressionado!')}
+      />
     </View>
   );
 }
