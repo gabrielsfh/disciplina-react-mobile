@@ -1,20 +1,17 @@
 import React from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Box from "./components/Box";
 import '@expo/metro-runtime';
 
 export default function App(){
   return(
     <View style={styles.container}>
-      <View style={styles.box}>
-        <Text style={styles.text}>Caixa 1</Text>
-      </View>
-      <View style={styles.box}>
-        <Text style={styles.text}>Caixa 2</Text>
-      </View>
-      <View style={styles.box}>
-        <Text style={styles.text}>Caixa 3</Text>
-      </View>
+      <Box nome="Caixa 1"/>
+      <Box nome="Caixa 2"/>
+      <Box nome="Caixa 3"/>
+      <Box nome="Caixa 4"/>
     </View>
+
   )
 }
 
