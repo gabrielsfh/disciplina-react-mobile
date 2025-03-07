@@ -19,12 +19,18 @@ export default function App(){
 } 
 const styles = StyleSheet.create({
   container:{
-
+    padding: 20,
+    marginTop: 20
   },
   item:{
+    marginBottom: 10,
+    padding: 20,
+    backgroundColor: 'gray',
+    borderRadius: 8
 
   },
   text:{
-
+    fontSize: 16,
+    fontWeight: 'bold'
   }
 })
