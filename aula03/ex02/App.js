@@ -28,6 +28,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    padding: 20,
+    marginTop: 20
   },
   listContent: {
     alignItems: 'center',
