@@ -1,2 +1,6 @@
 Instalar:
-npx create-expo-app '' --template blank && cd '' && npx expo install react-dom react-native-web @expo/metro-runtime
+npx create-expo-app 'NavDrawerTabs' --template blank && cd 'NavDrawerTabs' && npx expo install react-dom react-native-web @expo/metro-runtime
+
+
+Comando insano pra testar depois:
+npx create-expo-app 'NavTabs' --template blank && cd 'NavTabs' && npx expo install react-dom react-native-web @expo/metro-runtime && sed -i '1i import "@expo/metro-runtime";' app.js && npx expo start
