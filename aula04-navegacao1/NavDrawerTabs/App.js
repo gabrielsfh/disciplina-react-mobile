@@ -8,49 +8,27 @@ import Evento2 from './components/Evento2';
 import Evento3 from './components/Evento3';
 import '@expo/metro-runtime';
 
-// Criando o Drawer Navigator
 const Drawer = createDrawerNavigator();
-const Tab = createBottomTabNavigator(); 
+const Tab = createBottomTabNavigator();
 
-function Nav() {
+function TabNavigator() {
   return (
-    <NavigationContainer>
-      <Drawer.Navigator initialRouteName="Evento 1">
-        <Drawer.Screen 
-          name="Evento 1" 
-          component={Evento1} 
-          initialParams={{ evento: 'Evento 1' }} // Passa o parâmetro evento
-        />
-        <Drawer.Screen 
-          name="Evento 2" 
-          component={Evento2} 
-          initialParams={{ evento: 'Evento 2' }} // Passa o parâmetro evento
-        />
-        <Drawer.Screen 
-          name="Evento 3" 
-          component={Evento3} 
-          initialParams={{ evento: 'Evento 3' }} // Passa o parâmetro evento
-        />
-      </Drawer.Navigator>
-      
-    </NavigationContainer>
+    <Tab.Navigator>
+      <Tab.Screen name="Evento1" component={Evento1} />
+      <Tab.Screen name="Evento2" component={Evento2} />
+      <Tab.Screen name="Evento3" component={Evento3} />
+    </Tab.Navigator>
   );
 }
 
 function App() {
   return (
-    <>
-    <Nav/>
     <NavigationContainer>
-    <Tab.Navigator>
-        <Tab.Screen name="Evento1" component={Evento1} />
-        <Tab.Screen name="Evento2" component={Evento2} />
-        <Tab.Screen name="Evento3" component={Evento3} />
-    </Tab.Navigator>
-
+      <Drawer.Navigator initialRouteName="Tabs">
+        <Drawer.Screen name="Tabs" component={TabNavigator} />
+        {/* You can add more Drawer screens here if needed */}
+      </Drawer.Navigator>
     </NavigationContainer>
-    
-    </>
   );
 }
 
