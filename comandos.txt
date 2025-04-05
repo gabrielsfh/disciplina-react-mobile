@@ -1,5 +1,5 @@
 Instalar:
-npx create-expo-app 'gps' --template blank && cd 'gps' && npx expo install react-dom react-native-web @expo/metro-runtime
+npx create-expo-app 'camera' --template blank && cd 'camera' && npx expo install react-dom react-native-web @expo/metro-runtime
 
 
 npx expo install react-dom react-native-web @expo/metro-runtime
