@@ -1,5 +1,5 @@
 Instalar:
-npx create-expo-app 'camera' --template blank && cd 'camera' && npx expo install react-dom react-native-web @expo/metro-runtime
+npx create-expo-app 'exFirebase' --template blank && cd 'exFirebase' && npx expo install react-dom react-native-web @expo/metro-runtime
 
 
 npx expo install react-dom react-native-web @expo/metro-runtime
