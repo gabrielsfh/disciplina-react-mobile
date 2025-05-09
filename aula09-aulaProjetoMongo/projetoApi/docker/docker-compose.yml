@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  mongodb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: projetoMongodbApi
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+volumes:
+  mongodb-data:
