@@ -1,0 +1,29 @@
+@host = http://localhost:3000
+
+### Criar Produto
+POST {{host}}/api/produtos
+Content-type: application/json
+
+{
+    "nome": "Monitor",
+    "preco": 350.99,
+    "quantidade": 100
+}
+
+### Listar
+GET {{host}}/api/produtos
+
+### Obter por ID
+GET {{host}}/api/produtos/681e9cbff9f3f6b7f7e6797f
+
+### Atualizar
+PUT {{host}}/api/produtos/681e9c5cf9f3f6b7f7e6797c
+Content-Type: application/json
+
+{
+    "preco":6500
+}
+
+### Deletar
+DELETE {{host}}/api/produtos/681e9cbff9f3f6b7f7e6797f
+
