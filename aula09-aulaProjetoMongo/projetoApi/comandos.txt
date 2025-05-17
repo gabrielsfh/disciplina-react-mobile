@@ -1,0 +1,7 @@
+
+// usado para iniciar e executar todos os serviços definidos no arquivo docker-compose.yml em modo "detached" (em segundo plano).
+docker-compose up -d 
+
+
+// Este comando é usado para listar os contêineres que estão atualmente em execução no seu host Docker.
+docker ps
