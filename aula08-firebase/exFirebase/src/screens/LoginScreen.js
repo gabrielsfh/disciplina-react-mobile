@@ -22,8 +22,17 @@ export default function LoginScreen({ navigation }) {
             const querySnapshot = await getDocs(q);
 
             if (!querySnapshot.empty) {
+                const userDoc = querySnapshot.docs[0];
+                const userData = userDoc.data();
+                const userId = userDoc.id;
+
                 Alert.alert("Sucesso", "Login realizado com sucesso!");
-                navigation.replace('OptionsScreen');
+
+                // Redireciona para OptionsScreen, passando o ID e tipoUsuario
+                navigation.replace('OptionsScreen', {
+                    userId,
+                    tipoUsuario: userData.tipoUsuario
+                });
             } else {
                 Alert.alert("Erro", "Usuário ou senha incorretos.");
             }
@@ -32,10 +41,6 @@ export default function LoginScreen({ navigation }) {
             console.error("Erro ao fazer login: ", error);
         }
     };
-
-    const handleLogin1 = async () => {
-        navigation.replace('OptionsScreen');
-    }
 
     return (
         <View style={styles.container}>
@@ -56,7 +61,7 @@ export default function LoginScreen({ navigation }) {
                 secureTextEntry
             />
 
-            <Button title="Entrar" onPress={handleLogin1} />
+            <Button title="Entrar" onPress={handleLogin} />
         </View>
     );
 }

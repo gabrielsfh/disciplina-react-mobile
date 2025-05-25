@@ -31,7 +31,6 @@ export default function RegisterAlunos({ navigation }) {
       return;
     }
 
-    // Busca o curso selecionado pelo id (não pelo nome)
     const cursoSelecionado = cursosDisponiveis.find(c => c.id === curso);
 
     if (cursoSelecionado && cursoSelecionado.quantidadePeriodos) {
@@ -55,8 +54,17 @@ export default function RegisterAlunos({ navigation }) {
     }
 
     try {
-      const usuarioQuery = query(collection(db, 'alunos'), where('usuario', '==', usuario));
-      const matriculaQuery = query(collection(db, 'alunos'), where('nmatricula', '==', nmatricula));
+      // Verificar se usuario já existe (tipo aluno)
+      const usuarioQuery = query(
+        collection(db, 'usuarios'), 
+        where('usuario', '==', usuario),
+        where('tipoUsuario', '==', 'aluno')
+      );
+      const matriculaQuery = query(
+        collection(db, 'usuarios'), 
+        where('nmatricula', '==', nmatricula),
+        where('tipoUsuario', '==', 'aluno')
+      );
       const usuarioSnapshot = await getDocs(usuarioQuery);
       const matriculaSnapshot = await getDocs(matriculaQuery);
 
@@ -70,13 +78,14 @@ export default function RegisterAlunos({ navigation }) {
         return;
       }
 
-      await addDoc(collection(db, 'alunos'), {
+      await addDoc(collection(db, 'usuarios'), {
         nome,
         usuario,
         nmatricula,
         senha,
-        curso, 
-        periodo
+        curso,
+        periodo,
+        tipoUsuario: 'aluno'
       });
 
       Alert.alert("Sucesso", "Aluno cadastrado!");

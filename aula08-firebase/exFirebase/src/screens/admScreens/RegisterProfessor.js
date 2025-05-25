@@ -19,7 +19,6 @@ export default function RegisterProfessor({ navigation }) {
       const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setCursosDisponiveis(lista);
     };
-
     fetchCursos();
   }, []);
 
@@ -43,7 +42,6 @@ export default function RegisterProfessor({ navigation }) {
     const atualizados = selecionados.includes(periodo)
       ? selecionados.filter(p => p !== periodo)
       : [...selecionados, periodo];
-
     setPeriodosPorCurso({
       ...periodosPorCurso,
       [cursoId]: atualizados,
@@ -55,7 +53,6 @@ export default function RegisterProfessor({ navigation }) {
       Alert.alert("Erro", "Preencha todos os campos e selecione ao menos um curso.");
       return;
     }
-
     const periodosSelecionados = Object.values(periodosPorCurso).flat();
     if (periodosSelecionados.length === 0) {
       Alert.alert("Erro", "Selecione ao menos um período.");
@@ -63,8 +60,17 @@ export default function RegisterProfessor({ navigation }) {
     }
 
     try {
-      const qUser = query(collection(db, 'professores'), where('usuario', '==', usuario));
-      const qId = query(collection(db, 'professores'), where('idfuncionario', '==', idfuncionario));
+      // Verifica se usuario ou idfuncionario já existem na coleção usuarios com tipoUsuario professor
+      const qUser = query(
+        collection(db, 'usuarios'), 
+        where('usuario', '==', usuario),
+        where('tipoUsuario', '==', 'professor')
+      );
+      const qId = query(
+        collection(db, 'usuarios'), 
+        where('idfuncionario', '==', idfuncionario),
+        where('tipoUsuario', '==', 'professor')
+      );
       const userSnap = await getDocs(qUser);
       const idSnap = await getDocs(qId);
 
@@ -72,19 +78,19 @@ export default function RegisterProfessor({ navigation }) {
         Alert.alert("Erro", "Já existe um professor com esse usuário.");
         return;
       }
-
       if (!idSnap.empty) {
         Alert.alert("Erro", "Já existe um professor com esse ID de funcionário.");
         return;
       }
 
-      await addDoc(collection(db, 'professores'), {
+      await addDoc(collection(db, 'usuarios'), {
         nome,
         usuario,
         senha,
         idfuncionario,
         cursos: cursosSelecionados,
-        periodos: periodosPorCurso
+        periodos: periodosPorCurso,
+        tipoUsuario: 'professor' // <-- importante
       });
 
       Alert.alert("Sucesso", "Professor cadastrado!");

@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Button, StyleSheet } from 'react-native';
 
-export default function HomeScreen({ navigation }) {
+export default function OptionsScreen({ navigation, route }) {
+    const { userId, tipoUsuario } = route.params;
+
     return (
         <View style={styles.container}>
             <View style={styles.button}>
@@ -41,6 +43,14 @@ export default function HomeScreen({ navigation }) {
                     title="Cadastrar Curso"
                     onPress={() => navigation.navigate('RegisterCursos')}
                     color="#9B59B6" 
+                />
+            </View>
+
+            <View style={[styles.button, { marginTop: 5 }]}>
+                <Button
+                    title="Registrar tema"
+                    onPress={() => navigation.navigate('RegisterTema', { professorId: userId })}
+                    color="#1ABC9C" 
                 />
             </View>
 

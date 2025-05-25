@@ -3,20 +3,18 @@ import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterAdmin({ navigation }) {
     const [nome, setNome] = useState('');
     const [usuario, setUsuario] = useState('');
     const [senha, setSenha] = useState('');
-    
 
     const handleSubmit = async () => {
-        if (!nome || !usuario || !senha || !idade) {
+        if (!nome || !usuario || !senha) {
             Alert.alert("Erro", "Preencha todos os campos.");
             return;
         }
 
         try {
-            // Verifica se já existe usuário com esse nome
             const q = query(collection(db, 'usuarios'), where('usuario', '==', usuario));
             const querySnapshot = await getDocs(q);
 
@@ -29,14 +27,13 @@ export default function RegisterScreen({ navigation }) {
                 nome,
                 usuario,
                 senha,
-                idade: Number(idade)
+                tipoUsuario: 'administrador'
             });
 
-            Alert.alert("Sucesso", "Usuário cadastrado!");
+            Alert.alert("Sucesso", "Administrador cadastrado!");
             setNome('');
             setUsuario('');
             setSenha('');
-            setIdade('');
             navigation.navigate('UsersList');
 
         } catch (error) {
@@ -48,13 +45,29 @@ export default function RegisterScreen({ navigation }) {
     return (
         <View style={styles.container}>
             <Text style={styles.label}>Nome:</Text>
-            <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Digite o nome" />
+            <TextInput
+                style={styles.input}
+                value={nome}
+                onChangeText={setNome}
+                placeholder="Digite o nome"
+            />
 
             <Text style={styles.label}>Usuário:</Text>
-            <TextInput style={styles.input} value={usuario} onChangeText={setUsuario} placeholder="Digite o usuário" />
+            <TextInput
+                style={styles.input}
+                value={usuario}
+                onChangeText={setUsuario}
+                placeholder="Digite o usuário"
+            />
 
             <Text style={styles.label}>Senha:</Text>
-            <TextInput style={styles.input} value={senha} onChangeText={setSenha} placeholder="Digite a senha" secureTextEntry />
+            <TextInput
+                style={styles.input}
+                value={senha}
+                onChangeText={setSenha}
+                placeholder="Digite a senha"
+                secureTextEntry
+            />
 
             <Button title="Cadastrar" onPress={handleSubmit} />
             <Button

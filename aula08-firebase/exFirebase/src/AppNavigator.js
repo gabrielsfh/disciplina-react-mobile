@@ -43,7 +43,8 @@ export default function AppNavigation() {
                 <Stack.Screen name="RegisterAlunos" component={RegisterAlunos} options={{ title: "Registrar Alunos" }} />
                 <Stack.Screen name="RegisterProfessor" component={RegisterProfessor} options={{ title: "Registrar Professor" }} />
                 
-
+                <Stack.Screen name="RegisterTema" component={RegisterTema} options={{ title: "Registrar Tema" }} />
+                
 
                 
             {/* 
@@ -54,8 +55,7 @@ export default function AppNavigation() {
                 <Stack.Screen name="RegisterNotas" component={RegisterNotas} options={{ title: "Registrar Notas" }} />
                 <Stack.Screen name="ListarProjetos" component={ListarProjetos} options={{ title: "Projetos Submetidos" }} />
                 PROFESSOR
-                <Stack.Screen name="RegisterTema" component={RegisterTema} options={{ title: "Registrar Tema" }} />
-                ALUNO
+                
                 <Stack.Screen name="RegisterProjeto" component={RegisterProjeto} options={{ title: "Registrar Projeto" }} /> */}
                 
             </Stack.Navigator>
