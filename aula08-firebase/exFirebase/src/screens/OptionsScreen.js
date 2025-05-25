@@ -7,7 +7,7 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.button}>
                 <Button
                     title="Cadastrar Professor"
-                    onPress={() => navigation.navigate('Register')}
+                    onPress={() => navigation.navigate('RegisterProfessor')}
                     color="#55CDFC" 
                 />
             </View>
@@ -31,7 +31,7 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.button}>
                 <Button
                     title="Cadastrar Administrador"
-                    onPress={() => navigation.navigate('Register')}
+                    onPress={() => navigation.navigate('RegisterAdmin')}
                     color="#FFD800" 
                 />
             </View>
