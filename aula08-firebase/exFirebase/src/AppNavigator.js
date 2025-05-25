@@ -1,21 +1,56 @@
 import React from 'react';
-import {NavigationContainer} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import RegisterScreen from "./screens/RegisterScreen";
+import HomeScreen from './screens/HomeScreen';
+import LoginScreen from './screens/LoginScreen';
+import RegisterScreen from './screens/admScreens/RegisterAdmin';
 import UsersListScreen from './screens/UsersListScreen';
+
+import OptionsScreen from './screens/OptionsScreen'
+
+// Adm
+import RegisterAlunos from './screens/admScreens/RegisterAlunos';
+import RegisterCursos from './screens/admScreens/RegisterCursos';
+
+// Avaliador
+import ListarProjetos from './screens/avaliadorScreens/ListarProjetos';
+import RegisterNotas from './screens/avaliadorScreens/RegisterNotas';
+
+// Professor
+import RegisterTema from './screens/professorScreens/RegisterTema';
+
+// Aluno
+import RegisterProjeto from './screens/alunoScreens/RegisterProjeto';
 
 const Stack = createNativeStackNavigator();
 
-export default function AppNavigation(){
-
+export default function AppNavigation() {
     return (
-    <NavigationContainer>
-        <Stack.Navigator initialRouteName="Register">
-            <Stack.Screen name="Register" component={RegisterScreen} options={{title: "Cadastro"}}/>
-            <Stack.Screen name="UserList" component={UsersListScreen} options={{title: "Usuarios Cadastrados"}}/>
-        </Stack.Navigator>
-    </NavigationContainer>
-    );
+        <NavigationContainer>
+            <Stack.Navigator initialRouteName="Login">
+                <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login" }} />
+                <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Menu" }} />
+                <Stack.Screen name="Register" component={RegisterScreen} options={{ title: "Cadastro" }} />
+                <Stack.Screen name="UsersList" component={UsersListScreen} options={{ title: "Usuários Cadastrados" }} />
+                <Stack.Screen name="OptionsScreen" component={OptionsScreen} options={{ title: "Opções" }} />
 
+                <Stack.Screen name="RegisterCursos" component={RegisterCursos} options={{ title: "Registrar Cursos" }} />
+                <Stack.Screen name="RegisterAlunos" component={RegisterAlunos} options={{ title: "Registrar Alunos" }} />
+                
+            {/* 
+                ADM
+                <Stack.Screen name="RegisterAlunos" component={RegisterAlunos} options={{ title: "Registrar Alunos" }} />
+                
+                AVALIADOR
+                <Stack.Screen name="RegisterNotas" component={RegisterNotas} options={{ title: "Registrar Notas" }} />
+                <Stack.Screen name="ListarProjetos" component={ListarProjetos} options={{ title: "Projetos Submetidos" }} />
+                PROFESSOR
+                <Stack.Screen name="RegisterTema" component={RegisterTema} options={{ title: "Registrar Tema" }} />
+                ALUNO
+                <Stack.Screen name="RegisterProjeto" component={RegisterProjeto} options={{ title: "Registrar Projeto" }} /> */}
+                
+            </Stack.Navigator>
+        </NavigationContainer>
+    );
 }
