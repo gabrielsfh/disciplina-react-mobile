@@ -14,6 +14,7 @@ export default function ManageTema() {
   const [periodoSelecionado, setPeriodoSelecionado] = useState('');
   const [professorId, setProfessorId] = useState(null);
   const [temaId, setTemaId] = useState(null);
+  const [periodosDoProfessor, setPeriodosDoProfessor] = useState({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -39,6 +40,8 @@ export default function ManageTema() {
       const data = profSnap.data();
       if (!data?.cursos) return;
 
+      setPeriodosDoProfessor(data.periodos || {});
+
       const cursosSnapshot = await getDocs(collection(db, 'cursos'));
       const cursosLista = [];
 
@@ -56,17 +59,12 @@ export default function ManageTema() {
 
   useEffect(() => {
     if (cursoSelecionado) {
-      const curso = cursos.find(c => c.id === cursoSelecionado);
-      if (curso) {
-        const qtd = parseInt(curso.quantidadePeriodos, 10);
-        const lista = [];
-        for (let i = 1; i <= qtd; i++) lista.push(i.toString());
-        setPeriodos(lista);
-        setPeriodoSelecionado('');
-        setTitulo('');
-        setDescricao('');
-        setTemaId(null);
-      }
+      const periodosPermitidos = periodosDoProfessor[cursoSelecionado] || [];
+      setPeriodos(periodosPermitidos.map(p => p.toString()));
+      setPeriodoSelecionado('');
+      setTitulo('');
+      setDescricao('');
+      setTemaId(null);
     } else {
       setPeriodos([]);
       setPeriodoSelecionado('');
@@ -74,7 +72,7 @@ export default function ManageTema() {
       setDescricao('');
       setTemaId(null);
     }
-  }, [cursoSelecionado]);
+  }, [cursoSelecionado, periodosDoProfessor]);
 
   useEffect(() => {
     if (cursoSelecionado && periodoSelecionado) {
@@ -93,7 +91,6 @@ export default function ManageTema() {
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        // Pega o primeiro tema encontrado (deve ter só um)
         const temaDoc = querySnapshot.docs[0];
         const temaData = temaDoc.data();
 
@@ -119,7 +116,6 @@ export default function ManageTema() {
 
     try {
       if (temaId) {
-        // Atualiza tema existente
         const temaRef = doc(db, 'temas', temaId);
         await updateDoc(temaRef, {
           titulo,
@@ -129,7 +125,6 @@ export default function ManageTema() {
 
         Alert.alert('Sucesso', 'Tema atualizado com sucesso!');
       } else {
-        // Cria novo tema
         await addDoc(collection(db, 'temas'), {
           titulo,
           descricao,

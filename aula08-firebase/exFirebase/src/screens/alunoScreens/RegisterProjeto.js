@@ -1,146 +1,150 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView } from 'react-native';
-import { collection, addDoc, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
-import Checkbox from 'expo-checkbox';
+import { auth, db } from '../../firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, getDocs, getDoc, query, where, doc, addDoc } from 'firebase/firestore';
+import { Picker } from '@react-native-picker/picker';
 
-export default function RegisterTema({ route }) {
-  const { professorId } = route.params;
-
-  const [titulo, setTitulo] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [cursos, setCursos] = useState([]);
-  const [cursoSelecionado, setCursoSelecionado] = useState('');
-  const [periodos, setPeriodos] = useState([]);
-  const [periodoSelecionado, setPeriodoSelecionado] = useState('');
+export default function RegistrarProjeto() {
+  const [temas, setTemas] = useState([]);
+  const [temaSelecionado, setTemaSelecionado] = useState('');
+  const [nomeProjeto, setNomeProjeto] = useState('');
+  const [descricaoProjeto, setDescricaoProjeto] = useState('');
+  const [usuario, setUsuario] = useState(null);
+  const [projetosExistentes, setProjetosExistentes] = useState([]);
 
   useEffect(() => {
-    const carregarCursosDoProfessor = async () => {
-      try {
-        const profRef = doc(db, 'usuarios', professorId);
-        const profSnap = await getDoc(profRef);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userRef = doc(db, 'usuarios', user.uid);
+        const userSnap = await getDoc(userRef);
 
-        if (!profSnap.exists()) {
-          console.warn('Professor não encontrado');
+        if (!userSnap.exists()) {
+          Alert.alert('Erro', 'Usuário não encontrado.');
           return;
         }
 
-        const data = profSnap.data();
-        if (!data || !data.cursos) return;
+        const userData = userSnap.data();
 
-        const cursosSnapshot = await getDocs(collection(db, 'cursos'));
-        const cursosLista = [];
+        if (userData.tipoUsuario !== 'aluno') {
+          Alert.alert('Acesso negado', 'Somente alunos podem registrar projetos.');
+          return;
+        }
 
-        cursosSnapshot.forEach(docSnap => {
-          if (data.cursos.includes(docSnap.id)) {
-            cursosLista.push({ id: docSnap.id, ...docSnap.data() });
-          }
-        });
-
-        setCursos(cursosLista);
-      } catch (error) {
-        console.error('Erro ao carregar cursos:', error);
+        setUsuario({ uid: user.uid, ...userData });
+        await carregarTemas(userData);
+        await verificarProjetosExistentes(user.uid);
       }
-    };
+    });
 
-    carregarCursosDoProfessor();
+    return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    if (cursoSelecionado) {
-      const curso = cursos.find(c => c.id === cursoSelecionado);
-      if (curso) {
-        const qtd = parseInt(curso.quantidadePeriodos, 10);
-        const lista = [];
-        for (let i = 1; i <= qtd; i++) lista.push(i.toString());
-        setPeriodos(lista);
-        setPeriodoSelecionado('');
-      }
-    } else {
-      setPeriodos([]);
-      setPeriodoSelecionado('');
-    }
-  }, [cursoSelecionado]);
+  const carregarTemas = async (alunoData) => {
+    try {
+      const snapshot = await getDocs(collection(db, 'temas'));
+      const temasFiltrados = [];
 
-  const handleSalvarTema = async () => {
-    if (!titulo || !descricao || !cursoSelecionado || !periodoSelecionado) {
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const cursoId = data.cursoId;
+        const periodo = data.periodo.toString();
+        if (
+          alunoData.cursos.includes(cursoId) &&
+          alunoData.periodos?.[cursoId]?.toString() === periodo
+        ) {
+          temasFiltrados.push({ id: docSnap.id, ...data });
+        }
+      });
+
+      setTemas(temasFiltrados);
+    } catch (error) {
+      console.error('Erro ao carregar temas:', error);
+    }
+  };
+
+  const verificarProjetosExistentes = async (alunoId) => {
+    const q = query(collection(db, 'projetos'), where('alunoId', '==', alunoId));
+    const snap = await getDocs(q);
+    const projetos = snap.docs.map(doc => doc.data());
+    setProjetosExistentes(projetos);
+  };
+
+  const handleRegistrarProjeto = async () => {
+    if (!nomeProjeto || !descricaoProjeto || !temaSelecionado) {
       Alert.alert('Erro', 'Preencha todos os campos.');
       return;
     }
 
+    const tema = temas.find(t => t.id === temaSelecionado);
+    const projetoJaExiste = projetosExistentes.some(
+      p => p.cursoId === tema.cursoId && p.periodo === tema.periodo
+    );
+
+    if (projetoJaExiste) {
+      Alert.alert('Aviso', 'Você já registrou um projeto para esse curso e período.');
+      return;
+    }
+
     try {
-      await addDoc(collection(db, 'temas'), {
-        titulo,
-        descricao,
-        cursoId: cursoSelecionado,
-        periodo: periodoSelecionado,
-        professorId
+      await addDoc(collection(db, 'projetos'), {
+        alunoId: usuario.uid,
+        cursoId: tema.cursoId,
+        periodo: tema.periodo,
+        temaId: tema.id,
+        nomeProjeto,
+        descricaoProjeto
       });
 
-      Alert.alert('Sucesso', 'Tema cadastrado com sucesso!');
-      setTitulo('');
-      setDescricao('');
-      setCursoSelecionado('');
-      setPeriodoSelecionado('');
-      setPeriodos([]);
+      Alert.alert('Sucesso', 'Projeto registrado com sucesso!');
+      setNomeProjeto('');
+      setDescricaoProjeto('');
+      setTemaSelecionado('');
+      await verificarProjetosExistentes(usuario.uid);
     } catch (error) {
-      console.error('Erro ao cadastrar tema: ', error);
-      Alert.alert('Erro', 'Não foi possível cadastrar o tema.');
+      console.error('Erro ao registrar projeto:', error);
+      Alert.alert('Erro', 'Não foi possível registrar o projeto.');
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.label}>Título do Tema:</Text>
+      <Text style={styles.title}>Registrar Projeto</Text>
+
+      <Text style={styles.label}>Selecione um tema disponível:</Text>
+      <Picker
+        selectedValue={temaSelecionado}
+        onValueChange={(itemValue) => setTemaSelecionado(itemValue)}
+        style={styles.picker}
+      >
+        <Picker.Item label="Selecione um tema" value="" />
+        {temas.map((tema) => (
+          <Picker.Item
+            key={tema.id}
+            label={`${tema.titulo} (${tema.periodo}º período)`}
+            value={tema.id}
+          />
+        ))}
+      </Picker>
+
+      <Text style={styles.label}>Título do Projeto:</Text>
       <TextInput
         style={styles.input}
-        value={titulo}
-        onChangeText={setTitulo}
-        placeholder="Digite o título"
+        value={nomeProjeto}
+        onChangeText={setNomeProjeto}
+        placeholder="Título do Projeto"
       />
 
-      <Text style={styles.label}>Descrição:</Text>
+      <Text style={styles.label}>Descrição do Projeto:</Text>
       <TextInput
-        style={[styles.input, { height: 80 }]}
-        value={descricao}
-        onChangeText={setDescricao}
-        placeholder="Descrição do tema"
+        style={[styles.input, { height: 100 }]}
+        value={descricaoProjeto}
+        onChangeText={setDescricaoProjeto}
+        placeholder="Descrição do Projeto"
         multiline
       />
 
-      {cursos.length > 0 && (
-        <>
-          <Text style={styles.label}>Curso:</Text>
-          {cursos.map(curso => (
-            <View key={curso.id} style={styles.checkboxContainer}>
-              <Checkbox
-                value={cursoSelecionado === curso.id}
-                onValueChange={() => setCursoSelecionado(curso.id)}
-              />
-              <Text style={styles.checkboxLabel}>{curso.nome}</Text>
-            </View>
-          ))}
-        </>
-      )}
-
-      {periodos.length > 0 && (
-        <>
-          <Text style={styles.label}>Período:</Text>
-          {periodos.map(p => (
-            <View key={p} style={styles.checkboxContainer}>
-              <Checkbox
-                value={periodoSelecionado === p}
-                onValueChange={() => setPeriodoSelecionado(p)}
-              />
-              <Text style={styles.checkboxLabel}>{p}º</Text>
-            </View>
-          ))}
-        </>
-      )}
-
-      <View style={{ marginTop: 20 }}>
-        <Button title="Cadastrar Tema" onPress={handleSalvarTema} color="#007bff" />
-      </View>
+      <Button title="Registrar Projeto" onPress={handleRegistrarProjeto} color="#007bff" />
     </ScrollView>
   );
 }
@@ -149,6 +153,11 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     backgroundColor: '#fff'
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20
   },
   label: {
     fontSize: 16,
@@ -161,12 +170,11 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 4
   },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 4
-  },
-  checkboxLabel: {
-    marginLeft: 8
+  picker: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    marginTop: 4,
+    marginBottom: 12
   }
 });

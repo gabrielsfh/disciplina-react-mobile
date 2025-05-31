@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import { collection, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '../../firebaseConfig';
+import { db, auth } from '../../firebaseConfig';
+import Checkbox from 'expo-checkbox';
+import { Picker } from '@react-native-picker/picker';
 
 export default function RegisterAlunos({ navigation }) {
   const [nome, setNome] = useState('');
@@ -11,100 +12,86 @@ export default function RegisterAlunos({ navigation }) {
   const [email, setEmail] = useState('');
   const [nmatricula, setNmatricula] = useState('');
   const [senha, setSenha] = useState('');
-  const [curso, setCurso] = useState('');
-  const [periodo, setPeriodo] = useState('');
   const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
-  const [periodosDisponiveis, setPeriodosDisponiveis] = useState([]);
+  const [cursosSelecionados, setCursosSelecionados] = useState([]);
+  const [periodosPorCurso, setPeriodosPorCurso] = useState({});
 
   useEffect(() => {
     const fetchCursos = async () => {
-      const cursosSnapshot = await getDocs(collection(db, 'cursos'));
-      const cursosList = cursosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCursosDisponiveis(cursosList);
+      const snapshot = await getDocs(collection(db, 'cursos'));
+      const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCursosDisponiveis(lista);
     };
     fetchCursos();
   }, []);
 
-  useEffect(() => {
-    if (!curso) {
-      setPeriodosDisponiveis([]);
-      setPeriodo('');
+  const toggleCurso = (cursoId) => {
+    if (cursosSelecionados.includes(cursoId)) {
+      setCursosSelecionados(cursosSelecionados.filter(id => id !== cursoId));
+      const updated = { ...periodosPorCurso };
+      delete updated[cursoId];
+      setPeriodosPorCurso(updated);
+    } else {
+      setCursosSelecionados([...cursosSelecionados, cursoId]);
+      setPeriodosPorCurso({
+        ...periodosPorCurso,
+        [cursoId]: '',
+      });
+    }
+  };
+
+  const handlePeriodoChange = (cursoId, periodo) => {
+    setPeriodosPorCurso({
+      ...periodosPorCurso,
+      [cursoId]: periodo,
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!nome || !usuario || !email || !nmatricula || !senha || cursosSelecionados.length === 0) {
+      Alert.alert("Erro", "Preencha todos os campos e selecione ao menos um curso.");
       return;
     }
 
-    const cursoSelecionado = cursosDisponiveis.find(c => c.id === curso);
-    if (cursoSelecionado && cursoSelecionado.quantidadePeriodos) {
-      const qtd = parseInt(cursoSelecionado.quantidadePeriodos, 10);
-      const periodos = [];
-      for (let i = 1; i <= qtd; i++) {
-        periodos.push(i.toString());
-      }
-      setPeriodosDisponiveis(periodos);
-      setPeriodo('');
-    } else {
-      setPeriodosDisponiveis([]);
-      setPeriodo('');
-    }
-  }, [curso, cursosDisponiveis]);
-
-  const handleSubmit = async () => {
-    if (!nome || !usuario || !email || !nmatricula || !senha || !curso || !periodo) {
-      Alert.alert("Erro", "Preencha todos os campos.");
+    const periodosPreenchidos = cursosSelecionados.every(cursoId => periodosPorCurso[cursoId]);
+    if (!periodosPreenchidos) {
+      Alert.alert("Erro", "Selecione um período para cada curso.");
       return;
     }
 
     try {
-      // Verifica se nome de usuário já está em uso (tipo aluno)
-      const usuarioQuery = query(
-        collection(db, 'usuarios'), 
-        where('usuario', '==', usuario),
-        where('tipoUsuario', '==', 'aluno')
-      );
-      const matriculaQuery = query(
-        collection(db, 'usuarios'), 
-        where('nmatricula', '==', nmatricula),
-        where('tipoUsuario', '==', 'aluno')
-      );
-      const emailQuery = query(
-        collection(db, 'usuarios'), 
-        where('email', '==', email),
-        where('tipoUsuario', '==', 'aluno')
-      );
-
-      const [usuarioSnapshot, matriculaSnapshot, emailSnapshot] = await Promise.all([
-        getDocs(usuarioQuery),
-        getDocs(matriculaQuery),
-        getDocs(emailQuery),
+      const [usuarioSnap, matriculaSnap, emailSnap] = await Promise.all([
+        getDocs(query(collection(db, 'usuarios'), where('usuario', '==', usuario), where('tipoUsuario', '==', 'aluno'))),
+        getDocs(query(collection(db, 'usuarios'), where('nmatricula', '==', nmatricula), where('tipoUsuario', '==', 'aluno'))),
+        getDocs(query(collection(db, 'usuarios'), where('email', '==', email), where('tipoUsuario', '==', 'aluno')))
       ]);
 
-      if (!usuarioSnapshot.empty) {
+      if (!usuarioSnap.empty) {
         Alert.alert("Erro", "Já existe um aluno com esse nome de usuário.");
         return;
       }
 
-      if (!matriculaSnapshot.empty) {
+      if (!matriculaSnap.empty) {
         Alert.alert("Erro", "Já existe um aluno com essa matrícula.");
         return;
       }
 
-      if (!emailSnapshot.empty) {
+      if (!emailSnap.empty) {
         Alert.alert("Erro", "Já existe um aluno com esse email.");
         return;
       }
 
-      // Cria o usuário no Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
       const uid = userCredential.user.uid;
 
-      // Salva os dados no Firestore com UID como doc id
       await setDoc(doc(db, 'usuarios', uid), {
         uid,
         nome,
         usuario,
         email,
         nmatricula,
-        curso,
-        periodo,
+        cursos: cursosSelecionados,
+        periodos: periodosPorCurso,
         tipoUsuario: 'aluno'
       });
 
@@ -114,13 +101,12 @@ export default function RegisterAlunos({ navigation }) {
       setEmail('');
       setNmatricula('');
       setSenha('');
-      setCurso('');
-      setPeriodo('');
+      setCursosSelecionados([]);
+      setPeriodosPorCurso({});
 
       navigation.navigate('UsersList');
-
     } catch (error) {
-      console.error("Erro no cadastro do aluno:", error);
+      console.error("Erro ao cadastrar aluno:", error);
       Alert.alert("Erro", "Não foi possível cadastrar o aluno.");
     }
   };
@@ -134,47 +120,46 @@ export default function RegisterAlunos({ navigation }) {
       <TextInput style={styles.input} value={usuario} onChangeText={setUsuario} placeholder="Nome de usuário" />
 
       <Text style={styles.label}>Email:</Text>
-      <TextInput
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Email"
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email" keyboardType="email-address" autoCapitalize="none" />
 
       <Text style={styles.label}>Número de Matrícula:</Text>
-      <TextInput
-        style={styles.input}
-        value={nmatricula}
-        onChangeText={setNmatricula}
-        placeholder="Ex: 2023012345"
-        keyboardType="numeric"
-      />
+      <TextInput style={styles.input} value={nmatricula} onChangeText={setNmatricula} placeholder="Ex: 2023012345" keyboardType="numeric" />
 
       <Text style={styles.label}>Senha:</Text>
       <TextInput style={styles.input} secureTextEntry value={senha} onChangeText={setSenha} placeholder="Senha" />
 
-      <Text style={styles.label}>Curso:</Text>
-      <Picker selectedValue={curso} style={styles.picker} onValueChange={setCurso}>
-        <Picker.Item label="Selecione um curso" value="" />
-        {cursosDisponiveis.map(c => (
-          <Picker.Item key={c.id} label={c.nome} value={c.id} />
-        ))}
-      </Picker>
+      <Text style={styles.label}>Cursos:</Text>
+      {cursosDisponiveis.map(curso => (
+        <View key={curso.id} style={styles.checkboxContainer}>
+          <Checkbox
+            value={cursosSelecionados.includes(curso.id)}
+            onValueChange={() => toggleCurso(curso.id)}
+          />
+          <Text style={styles.checkboxLabel}>{curso.nome}</Text>
+        </View>
+      ))}
 
-      <Text style={styles.label}>Período:</Text>
-      <Picker
-        selectedValue={periodo}
-        style={styles.picker}
-        onValueChange={setPeriodo}
-        enabled={periodosDisponiveis.length > 0}
-      >
-        <Picker.Item label="Selecione um período" value="" />
-        {periodosDisponiveis.map(p => (
-          <Picker.Item key={p} label={`${p}º`} value={p} />
-        ))}
-      </Picker>
+      {cursosSelecionados.map(cursoId => {
+        const curso = cursosDisponiveis.find(c => c.id === cursoId);
+        const total = parseInt(curso?.quantidadePeriodos || '0', 10);
+        const periodos = Array.from({ length: total }, (_, i) => (i + 1).toString());
+
+        return (
+          <View key={cursoId}>
+            <Text style={styles.label}>Período para {curso.nome}:</Text>
+            <Picker
+              selectedValue={periodosPorCurso[cursoId] || ''}
+              onValueChange={(value) => handlePeriodoChange(cursoId, value)}
+              style={styles.picker}
+            >
+              <Picker.Item label="Selecione um período" value="" />
+              {periodos.map(p => (
+                <Picker.Item key={p} label={`${p}º`} value={p} />
+              ))}
+            </Picker>
+          </View>
+        );
+      })}
 
       <Button title="Cadastrar Aluno" onPress={handleSubmit} color="#28a745" />
     </ScrollView>
@@ -197,10 +182,18 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 4
   },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4
+  },
+  checkboxLabel: {
+    marginLeft: 8
+  },
   picker: {
-    height: 50,
-    marginTop: 4,
     borderWidth: 1,
-    borderColor: '#ccc'
+    borderColor: '#ccc',
+    borderRadius: 4,
+    marginTop: 4
   }
 });

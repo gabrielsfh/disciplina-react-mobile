@@ -28,6 +28,16 @@ export default function OptionsScreen({ navigation, route }) {
                 </View>
             )}
 
+               {tipoUsuario === 'aluno' && (
+                <View style={styles.button}>
+                    <Button
+                        title="Registrar projeto"
+                        onPress={() => navigation.navigate('RegisterProjeto')}
+                        color="#55CDFC"
+                    />
+                </View>
+            )}
+
             <View style={styles.button}>
                 <Button
                     title="Cadastrar Aluno"
