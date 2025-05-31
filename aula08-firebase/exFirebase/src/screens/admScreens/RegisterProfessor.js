@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView } from 'react-native';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
+import { collection, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { db, auth } from '../../firebaseConfig';
 import Checkbox from 'expo-checkbox';
 
 export default function RegisterProfessor({ navigation }) {
   const [nome, setNome] = useState('');
   const [usuario, setUsuario] = useState('');
+  const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [idfuncionario, setIdfuncionario] = useState('');
   const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
@@ -49,7 +51,7 @@ export default function RegisterProfessor({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    if (!nome || !usuario || !senha || !idfuncionario || cursosSelecionados.length === 0) {
+    if (!nome || !usuario || !email || !senha || !idfuncionario || cursosSelecionados.length === 0) {
       Alert.alert("Erro", "Preencha todos os campos e selecione ao menos um curso.");
       return;
     }
@@ -60,20 +62,18 @@ export default function RegisterProfessor({ navigation }) {
     }
 
     try {
-      // Verifica se usuario ou idfuncionario já existem na coleção usuarios com tipoUsuario professor
+      // Verifica se usuário ou ID já existem
       const qUser = query(
-        collection(db, 'usuarios'), 
+        collection(db, 'usuarios'),
         where('usuario', '==', usuario),
         where('tipoUsuario', '==', 'professor')
       );
       const qId = query(
-        collection(db, 'usuarios'), 
+        collection(db, 'usuarios'),
         where('idfuncionario', '==', idfuncionario),
         where('tipoUsuario', '==', 'professor')
       );
-      const userSnap = await getDocs(qUser);
-      const idSnap = await getDocs(qId);
-
+      const [userSnap, idSnap] = await Promise.all([getDocs(qUser), getDocs(qId)]);
       if (!userSnap.empty) {
         Alert.alert("Erro", "Já existe um professor com esse usuário.");
         return;
@@ -83,23 +83,33 @@ export default function RegisterProfessor({ navigation }) {
         return;
       }
 
-      await addDoc(collection(db, 'usuarios'), {
+      // Cria o usuário no Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+      const { uid } = userCredential.user;
+
+      // Salva no Firestore com UID como id
+      await setDoc(doc(db, 'usuarios', uid), {
+        uid,
         nome,
+        email,
         usuario,
-        senha,
         idfuncionario,
         cursos: cursosSelecionados,
         periodos: periodosPorCurso,
-        tipoUsuario: 'professor' // <-- importante
+        tipoUsuario: 'professor'
       });
 
       Alert.alert("Sucesso", "Professor cadastrado!");
       setNome('');
       setUsuario('');
+      setEmail('');
       setSenha('');
       setIdfuncionario('');
       setCursosSelecionados([]);
       setPeriodosPorCurso({});
+      
+      navigation.navigate('UsersList'); // se quiser redirecionar
+
     } catch (error) {
       console.error("Erro ao cadastrar professor: ", error);
       Alert.alert("Erro", "Não foi possível cadastrar o professor.");
@@ -113,6 +123,16 @@ export default function RegisterProfessor({ navigation }) {
 
       <Text style={styles.label}>Usuário:</Text>
       <TextInput style={styles.input} value={usuario} onChangeText={setUsuario} placeholder="Nome de usuário" />
+
+      <Text style={styles.label}>Email:</Text>
+      <TextInput
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        placeholder="Email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
 
       <Text style={styles.label}>Senha:</Text>
       <TextInput style={styles.input} secureTextEntry value={senha} onChangeText={setSenha} placeholder="Senha" />

@@ -35,7 +35,6 @@ export default function AppNavigation() {
                 <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Menu" }} />
                 <Stack.Screen name="UsersList" component={UsersListScreen} options={{ title: "Usuários Cadastrados" }} />
 
-
                 <Stack.Screen name="OptionsScreen" component={OptionsScreen} options={{ title: "Opções" }} />
 
                 <Stack.Screen name="RegisterAdmin" component={RegisterAdmin} options={{ title: "Registrar Administradores" }} />
@@ -43,7 +42,7 @@ export default function AppNavigation() {
                 <Stack.Screen name="RegisterAlunos" component={RegisterAlunos} options={{ title: "Registrar Alunos" }} />
                 <Stack.Screen name="RegisterProfessor" component={RegisterProfessor} options={{ title: "Registrar Professor" }} />
                 
-                <Stack.Screen name="RegisterTema" component={RegisterTema} options={{ title: "Registrar Tema" }} />
+                <Stack.Screen name="RegisterTema" component={RegisterTema} options={{ title: "Gerenciar Temas" }} />
                 
 
                 

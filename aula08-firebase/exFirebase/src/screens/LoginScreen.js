@@ -1,86 +1,80 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '../firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function LoginScreen({ navigation }) {
-    const [usuario, setUsuario] = useState('');
-    const [senha, setSenha] = useState('');
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
 
-    const handleLogin = async () => {
-        if (!usuario || !senha) {
-            Alert.alert("Erro", "Preencha todos os campos.");
-            return;
-        }
+  const handleLogin = async () => {
+    console.log('handleLogin chamado');
+    if (!email || !senha) {
+      Alert.alert("Erro", "Preencha todos os campos.");
+      return;
+    }
 
-        try {
-            const q = query(
-                collection(db, 'usuarios'),
-                where('usuario', '==', usuario),
-                where('senha', '==', senha)
-            );
-            const querySnapshot = await getDocs(q);
+    try {
+      // Login com Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+      const uid = userCredential.user.uid;
 
-            if (!querySnapshot.empty) {
-                const userDoc = querySnapshot.docs[0];
-                const userData = userDoc.data();
-                const userId = userDoc.id;
+      // Busca dados do usuário no Firestore pelo UID
+      const userDoc = await getDoc(doc(db, 'usuarios', uid));
 
-                Alert.alert("Sucesso", "Login realizado com sucesso!");
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        Alert.alert("Sucesso", "Login realizado com sucesso!");
 
-                // Redireciona para OptionsScreen, passando o ID e tipoUsuario
-                navigation.replace('OptionsScreen', {
-                    userId,
-                    tipoUsuario: userData.tipoUsuario
-                });
-            } else {
-                Alert.alert("Erro", "Usuário ou senha incorretos.");
-            }
-        } catch (error) {
-            Alert.alert("Erro", "Não foi possível realizar o login.");
-            console.error("Erro ao fazer login: ", error);
-        }
-    };
+        // Navega para OptionsScreen passando dados do usuário
+        navigation.replace('OptionsScreen', {
+          userId: uid,
+          tipoUsuario: userData.tipoUsuario
+        });
+      } else {
+        Alert.alert("Erro", "Dados do usuário não encontrados.");
+      }
+    } catch (error) {
+      console.error("Erro ao fazer login:", error);
+      Alert.alert("Erro", "Email ou senha incorretos.");
+    }
+  };
 
-    return (
-        <View style={styles.container}>
-            <Text style={styles.label}>Usuário:</Text>
-            <TextInput
-                style={styles.input}
-                value={usuario}
-                onChangeText={setUsuario}
-                placeholder="Digite o usuário"
-            />
+  return (
+    <View style={styles.container}>
+      <Text style={styles.label}>Email:</Text>
+      <TextInput
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        placeholder="Digite o email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
 
-            <Text style={styles.label}>Senha:</Text>
-            <TextInput
-                style={styles.input}
-                value={senha}
-                onChangeText={setSenha}
-                placeholder="Digite a senha"
-                secureTextEntry
-            />
+      <Text style={styles.label}>Senha:</Text>
+      <TextInput
+        style={styles.input}
+        value={senha}
+        onChangeText={setSenha}
+        placeholder="Digite a senha"
+        secureTextEntry
+      />
 
-            <Button title="Entrar" onPress={handleLogin} />
-        </View>
-    );
+      <Button title="Entrar" onPress={handleLogin} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: '#fff'
-    },
-    label: {
-        fontSize: 16,
-        marginTop: 12
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 4,
-        padding: 10,
-        marginTop: 4
-    }
+  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  label: { fontSize: 16, marginTop: 12 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    padding: 10,
+    marginTop: 4
+  }
 });

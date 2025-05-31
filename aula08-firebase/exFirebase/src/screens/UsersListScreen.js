@@ -37,9 +37,13 @@ export default function UsersListScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.item}>
-            <Text style={styles.itemText}>Nome: {item.nome}</Text>
-            <Text style={styles.itemText}>Usuário: {item.usuario}</Text>
-            <Text style={styles.itemText}>Idade: {item.idade}</Text>
+            {item.nome && <Text style={styles.itemText}>Nome: {item.nome}</Text>}
+            {item.usuario && <Text style={styles.itemText}>Usuário: {item.usuario}</Text>}
+            {item.email && <Text style={styles.itemText}>Email: {item.email}</Text>}
+            {item.nmatricula && <Text style={styles.itemText}>Matrícula: {item.nmatricula}</Text>}
+            {item.tipoUsuario && <Text style={styles.itemText}>Tipo: {item.tipoUsuario}</Text>}
+            {item.curso && <Text style={styles.itemText}>Curso ID: {item.curso}</Text>}
+            {item.periodo && <Text style={styles.itemText}>Período: {item.periodo}</Text>}
           </View>
         )}
         ListEmptyComponent={<Text>Nenhum usuário cadastrado.</Text>}
@@ -67,4 +71,3 @@ const styles = StyleSheet.create({
     fontSize: 16
   }
 });
-

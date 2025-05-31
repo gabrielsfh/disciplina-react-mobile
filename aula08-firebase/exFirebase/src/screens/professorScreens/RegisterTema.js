@@ -1,50 +1,58 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView } from 'react-native';
-import { collection, addDoc, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
+import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { db, auth } from '../../firebaseConfig';
 import Checkbox from 'expo-checkbox';
 
-export default function RegisterTema({ route }) {
-  const { professorId } = route.params;
-
+export default function ManageTema() {
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [cursos, setCursos] = useState([]);
   const [cursoSelecionado, setCursoSelecionado] = useState('');
   const [periodos, setPeriodos] = useState([]);
   const [periodoSelecionado, setPeriodoSelecionado] = useState('');
+  const [professorId, setProfessorId] = useState(null);
+  const [temaId, setTemaId] = useState(null);
 
   useEffect(() => {
-    const carregarCursosDoProfessor = async () => {
-      try {
-        const profRef = doc(db, 'usuarios', professorId);
-        const profSnap = await getDoc(profRef);
-
-        if (!profSnap.exists()) {
-          console.warn('Professor não encontrado');
-          return;
-        }
-
-        const data = profSnap.data();
-        if (!data || !data.cursos) return;
-
-        const cursosSnapshot = await getDocs(collection(db, 'cursos'));
-        const cursosLista = [];
-
-        cursosSnapshot.forEach(docSnap => {
-          if (data.cursos.includes(docSnap.id)) {
-            cursosLista.push({ id: docSnap.id, ...docSnap.data() });
-          }
-        });
-
-        setCursos(cursosLista);
-      } catch (error) {
-        console.error('Erro ao carregar cursos:', error);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setProfessorId(user.uid);
+        await carregarCursosDoProfessor(user.uid);
       }
-    };
+    });
 
-    carregarCursosDoProfessor();
+    return unsubscribe;
   }, []);
+
+  const carregarCursosDoProfessor = async (uid) => {
+    try {
+      const profRef = doc(db, 'usuarios', uid);
+      const profSnap = await getDoc(profRef);
+
+      if (!profSnap.exists()) {
+        console.warn('Professor não encontrado');
+        return;
+      }
+
+      const data = profSnap.data();
+      if (!data?.cursos) return;
+
+      const cursosSnapshot = await getDocs(collection(db, 'cursos'));
+      const cursosLista = [];
+
+      cursosSnapshot.forEach(docSnap => {
+        if (data.cursos.includes(docSnap.id)) {
+          cursosLista.push({ id: docSnap.id, ...docSnap.data() });
+        }
+      });
+
+      setCursos(cursosLista);
+    } catch (error) {
+      console.error('Erro ao carregar cursos:', error);
+    }
+  };
 
   useEffect(() => {
     if (cursoSelecionado) {
@@ -55,12 +63,53 @@ export default function RegisterTema({ route }) {
         for (let i = 1; i <= qtd; i++) lista.push(i.toString());
         setPeriodos(lista);
         setPeriodoSelecionado('');
+        setTitulo('');
+        setDescricao('');
+        setTemaId(null);
       }
     } else {
       setPeriodos([]);
       setPeriodoSelecionado('');
+      setTitulo('');
+      setDescricao('');
+      setTemaId(null);
     }
   }, [cursoSelecionado]);
+
+  useEffect(() => {
+    if (cursoSelecionado && periodoSelecionado) {
+      carregarTemaExistente(cursoSelecionado, periodoSelecionado);
+    } else {
+      setTitulo('');
+      setDescricao('');
+      setTemaId(null);
+    }
+  }, [cursoSelecionado, periodoSelecionado]);
+
+  const carregarTemaExistente = async (cursoId, periodo) => {
+    try {
+      const temasRef = collection(db, 'temas');
+      const q = query(temasRef, where('cursoId', '==', cursoId), where('periodo', '==', periodo));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        // Pega o primeiro tema encontrado (deve ter só um)
+        const temaDoc = querySnapshot.docs[0];
+        const temaData = temaDoc.data();
+
+        setTitulo(temaData.titulo || '');
+        setDescricao(temaData.descricao || '');
+        setTemaId(temaDoc.id);
+      } else {
+        setTitulo('');
+        setDescricao('');
+        setTemaId(null);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar tema:', error);
+      Alert.alert('Erro', 'Não foi possível carregar o tema existente.');
+    }
+  };
 
   const handleSalvarTema = async () => {
     if (!titulo || !descricao || !cursoSelecionado || !periodoSelecionado) {
@@ -69,23 +118,31 @@ export default function RegisterTema({ route }) {
     }
 
     try {
-      await addDoc(collection(db, 'temas'), {
-        titulo,
-        descricao,
-        cursoId: cursoSelecionado,
-        periodo: periodoSelecionado,
-        professorId
-      });
+      if (temaId) {
+        // Atualiza tema existente
+        const temaRef = doc(db, 'temas', temaId);
+        await updateDoc(temaRef, {
+          titulo,
+          descricao,
+          professorId
+        });
 
-      Alert.alert('Sucesso', 'Tema cadastrado com sucesso!');
-      setTitulo('');
-      setDescricao('');
-      setCursoSelecionado('');
-      setPeriodoSelecionado('');
-      setPeriodos([]);
+        Alert.alert('Sucesso', 'Tema atualizado com sucesso!');
+      } else {
+        // Cria novo tema
+        await addDoc(collection(db, 'temas'), {
+          titulo,
+          descricao,
+          cursoId: cursoSelecionado,
+          periodo: periodoSelecionado,
+          professorId
+        });
+
+        Alert.alert('Sucesso', 'Tema cadastrado com sucesso!');
+      }
     } catch (error) {
-      console.error('Erro ao cadastrar tema: ', error);
-      Alert.alert('Erro', 'Não foi possível cadastrar o tema.');
+      console.error('Erro ao salvar tema:', error);
+      Alert.alert('Erro', 'Não foi possível salvar o tema.');
     }
   };
 
@@ -139,7 +196,7 @@ export default function RegisterTema({ route }) {
       )}
 
       <View style={{ marginTop: 20 }}>
-        <Button title="Cadastrar Tema" onPress={handleSalvarTema} color="#007bff" />
+        <Button title="Salvar Tema" onPress={handleSalvarTema} color="#007bff" />
       </View>
     </ScrollView>
   );

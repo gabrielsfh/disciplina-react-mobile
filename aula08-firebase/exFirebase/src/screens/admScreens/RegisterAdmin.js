@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
+import { collection, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '../../firebaseConfig';
 
 export default function RegisterAdmin({ navigation }) {
     const [nome, setNome] = useState('');
     const [usuario, setUsuario] = useState('');
+    const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
 
     const handleSubmit = async () => {
-        if (!nome || !usuario || !senha) {
+        if (!nome || !usuario || !email || !senha) {
             Alert.alert("Erro", "Preencha todos os campos.");
             return;
         }
 
         try {
+            // Verifica se o nome de usuário já está em uso
             const q = query(collection(db, 'usuarios'), where('usuario', '==', usuario));
             const querySnapshot = await getDocs(q);
 
@@ -23,22 +26,29 @@ export default function RegisterAdmin({ navigation }) {
                 return;
             }
 
-            await addDoc(collection(db, 'usuarios'), {
+            // Cria o usuário no Firebase Auth
+            const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+            const uid = userCredential.user.uid;
+
+            // Salva os dados no Firestore usando o UID como id do documento
+            await setDoc(doc(db, 'usuarios', uid), {
+                uid,
                 nome,
                 usuario,
-                senha,
+                email,
                 tipoUsuario: 'administrador'
             });
 
             Alert.alert("Sucesso", "Administrador cadastrado!");
             setNome('');
             setUsuario('');
+            setEmail('');
             setSenha('');
             navigation.navigate('UsersList');
 
         } catch (error) {
+            console.error("Erro no cadastro: ", error);
             Alert.alert("Erro", "Não foi possível cadastrar o usuário.");
-            console.error("Erro ao adicionar documento: ", error);
         }
     };
 
@@ -52,12 +62,22 @@ export default function RegisterAdmin({ navigation }) {
                 placeholder="Digite o nome"
             />
 
-            <Text style={styles.label}>Usuário:</Text>
+            <Text style={styles.label}>Nome de usuário:</Text>
             <TextInput
                 style={styles.input}
                 value={usuario}
                 onChangeText={setUsuario}
-                placeholder="Digite o usuário"
+                placeholder="Digite o nome de usuário"
+            />
+
+            <Text style={styles.label}>Email:</Text>
+            <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Digite o email"
+                keyboardType="email-address"
+                autoCapitalize="none"
             />
 
             <Text style={styles.label}>Senha:</Text>
