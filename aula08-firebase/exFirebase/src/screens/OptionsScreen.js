@@ -31,7 +31,7 @@ export default function OptionsScreen({ navigation, route }) {
                {tipoUsuario === 'aluno' && (
                 <View style={styles.button}>
                     <Button
-                        title="Registrar projeto"
+                        title="Gerenciar projetos"
                         onPress={() => navigation.navigate('RegisterProjeto')}
                         color="#55CDFC"
                     />
@@ -72,7 +72,7 @@ export default function OptionsScreen({ navigation, route }) {
 
             <View style={[styles.button, { marginTop: 5 }]}>
                 <Button
-                    title="Registrar tema"
+                    title="Gerenciar temas"
                     onPress={() => navigation.navigate('RegisterTema', { professorId: userId })}
                     color="#1ABC9C"
                 />

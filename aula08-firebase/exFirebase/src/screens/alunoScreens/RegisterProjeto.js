@@ -109,7 +109,7 @@ export default function RegistrarProjeto() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Registrar Projeto</Text>
+      <Text style={styles.title}>Gerenciar Projetos</Text>
 
       <Text style={styles.label}>Selecione um tema disponível:</Text>
       <Picker

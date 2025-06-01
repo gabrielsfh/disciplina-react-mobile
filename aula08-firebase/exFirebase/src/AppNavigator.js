@@ -45,7 +45,7 @@ export default function AppNavigation() {
                 <Stack.Screen name="RegisterTema" component={RegisterTema} options={{ title: "Gerenciar Temas" }} />
                 
 
-                <Stack.Screen name="RegisterProjeto" component={RegisterProjeto} options={{ title: "Registrar Projeto" }} />
+                <Stack.Screen name="RegisterProjeto" component={RegisterProjeto} options={{ title: "Gerenciar Projeto" }} />
             {/* 
                 ADM
                 
