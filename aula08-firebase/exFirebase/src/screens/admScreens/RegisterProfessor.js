@@ -55,6 +55,7 @@ export default function RegisterProfessor({ navigation }) {
       Alert.alert("Erro", "Preencha todos os campos e selecione ao menos um curso.");
       return;
     }
+
     const periodosSelecionados = Object.values(periodosPorCurso).flat();
     if (periodosSelecionados.length === 0) {
       Alert.alert("Erro", "Selecione ao menos um período.");
@@ -62,7 +63,6 @@ export default function RegisterProfessor({ navigation }) {
     }
 
     try {
-      // Verifica se usuário ou ID já existem
       const qUser = query(
         collection(db, 'usuarios'),
         where('usuario', '==', usuario),
@@ -83,11 +83,14 @@ export default function RegisterProfessor({ navigation }) {
         return;
       }
 
-      // Cria o usuário no Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
       const { uid } = userCredential.user;
 
-      // Salva no Firestore com UID como id
+      const periodosOrdenados = {};
+      Object.keys(periodosPorCurso).forEach(cursoId => {
+        periodosOrdenados[cursoId] = [...periodosPorCurso[cursoId]].sort((a, b) => a - b);
+      });
+
       await setDoc(doc(db, 'usuarios', uid), {
         uid,
         nome,
@@ -95,7 +98,7 @@ export default function RegisterProfessor({ navigation }) {
         usuario,
         idfuncionario,
         cursos: cursosSelecionados,
-        periodos: periodosPorCurso,
+        periodos: periodosOrdenados,
         tipoUsuario: 'professor'
       });
 
@@ -107,8 +110,8 @@ export default function RegisterProfessor({ navigation }) {
       setIdfuncionario('');
       setCursosSelecionados([]);
       setPeriodosPorCurso({});
-      
-      navigation.navigate('UsersList'); // se quiser redirecionar
+
+      navigation.navigate('UsersList');
 
     } catch (error) {
       console.error("Erro ao cadastrar professor: ", error);
@@ -160,7 +163,7 @@ export default function RegisterProfessor({ navigation }) {
           <View key={cursoId}>
             <Text style={styles.label}>Períodos para {curso.nome}:</Text>
             {[...Array(total)].map((_, i) => {
-              const p = (i + 1).toString();
+              const p = i + 1;
               return (
                 <View key={p} style={styles.checkboxContainer}>
                   <Checkbox

@@ -2,11 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView } from 'react-native';
 import { auth, db } from '../../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, getDoc, query, where, doc, addDoc } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  getDoc,
+  query,
+  where,
+  doc,
+  addDoc,
+  updateDoc
+} from 'firebase/firestore';
 import { Picker } from '@react-native-picker/picker';
 
 export default function RegistrarProjeto() {
   const [temas, setTemas] = useState([]);
+  const [mapCursoIdNome, setMapCursoIdNome] = useState({});
   const [temaSelecionado, setTemaSelecionado] = useState('');
   const [nomeProjeto, setNomeProjeto] = useState('');
   const [descricaoProjeto, setDescricaoProjeto] = useState('');
@@ -32,6 +42,8 @@ export default function RegistrarProjeto() {
         }
 
         setUsuario({ uid: user.uid, ...userData });
+
+        await carregarCursos();
         await carregarTemas(userData);
         await verificarProjetosExistentes(user.uid);
       }
@@ -39,6 +51,16 @@ export default function RegistrarProjeto() {
 
     return unsubscribe;
   }, []);
+
+  const carregarCursos = async () => {
+    const snapshot = await getDocs(collection(db, 'cursos'));
+    const map = {};
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      map[doc.id] = data.nome;
+    });
+    setMapCursoIdNome(map);
+  };
 
   const carregarTemas = async (alunoData) => {
     try {
@@ -49,6 +71,7 @@ export default function RegistrarProjeto() {
         const data = docSnap.data();
         const cursoId = data.cursoId;
         const periodo = data.periodo.toString();
+
         if (
           alunoData.cursos.includes(cursoId) &&
           alunoData.periodos?.[cursoId]?.toString() === periodo
@@ -66,8 +89,35 @@ export default function RegistrarProjeto() {
   const verificarProjetosExistentes = async (alunoId) => {
     const q = query(collection(db, 'projetos'), where('alunoId', '==', alunoId));
     const snap = await getDocs(q);
-    const projetos = snap.docs.map(doc => doc.data());
+    const projetos = snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
     setProjetosExistentes(projetos);
+  };
+
+  const limparCampos = () => {
+    setTemaSelecionado('');
+    setNomeProjeto('');
+    setDescricaoProjeto('');
+  };
+
+  const handleSelecionarTema = (temaId) => {
+    setTemaSelecionado(temaId);
+    const tema = temas.find(t => t.id === temaId);
+    if (!tema) return;
+
+    const projetoExistente = projetosExistentes.find(
+      p => p.cursoId === tema.cursoId && p.periodo === tema.periodo
+    );
+
+    if (projetoExistente) {
+      setNomeProjeto(projetoExistente.nomeProjeto || '');
+      setDescricaoProjeto(projetoExistente.descricaoProjeto || '');
+    } else {
+      setNomeProjeto('');
+      setDescricaoProjeto('');
+    }
   };
 
   const handleRegistrarProjeto = async () => {
@@ -77,54 +127,59 @@ export default function RegistrarProjeto() {
     }
 
     const tema = temas.find(t => t.id === temaSelecionado);
-    const projetoJaExiste = projetosExistentes.some(
+    const projetoExistente = projetosExistentes.find(
       p => p.cursoId === tema.cursoId && p.periodo === tema.periodo
     );
 
-    if (projetoJaExiste) {
-      Alert.alert('Aviso', 'Você já registrou um projeto para esse curso e período.');
-      return;
-    }
-
     try {
-      await addDoc(collection(db, 'projetos'), {
-        alunoId: usuario.uid,
-        cursoId: tema.cursoId,
-        periodo: tema.periodo,
-        temaId: tema.id,
-        nomeProjeto,
-        descricaoProjeto
-      });
+      if (projetoExistente) {
+        const projetoRef = doc(db, 'projetos', projetoExistente.id);
+        await updateDoc(projetoRef, {
+          nomeProjeto,
+          descricaoProjeto
+        });
+        Alert.alert('Sucesso', 'Projeto atualizado com sucesso!');
+      } else {
+        await addDoc(collection(db, 'projetos'), {
+          alunoId: usuario.uid,
+          cursoId: tema.cursoId,
+          periodo: tema.periodo,
+          temaId: tema.id,
+          nomeProjeto,
+          descricaoProjeto
+        });
+        Alert.alert('Sucesso', 'Projeto registrado com sucesso!');
+      }
 
-      Alert.alert('Sucesso', 'Projeto registrado com sucesso!');
-      setNomeProjeto('');
-      setDescricaoProjeto('');
-      setTemaSelecionado('');
       await verificarProjetosExistentes(usuario.uid);
+      limparCampos();
     } catch (error) {
-      console.error('Erro ao registrar projeto:', error);
-      Alert.alert('Erro', 'Não foi possível registrar o projeto.');
+      console.error('Erro ao registrar/atualizar projeto:', error);
+      Alert.alert('Erro', 'Não foi possível registrar/atualizar o projeto.');
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Gerenciar Projetos</Text>
+      <Text style={styles.title}>Registrar ou Editar Projeto</Text>
 
-      <Text style={styles.label}>Selecione um tema disponível:</Text>
+      <Text style={styles.label}>Selecione o curso e tema</Text>
       <Picker
         selectedValue={temaSelecionado}
-        onValueChange={(itemValue) => setTemaSelecionado(itemValue)}
+        onValueChange={(itemValue) => handleSelecionarTema(itemValue)}
         style={styles.picker}
       >
         <Picker.Item label="Selecione um tema" value="" />
-        {temas.map((tema) => (
-          <Picker.Item
-            key={tema.id}
-            label={`${tema.titulo} (${tema.periodo}º período)`}
-            value={tema.id}
-          />
-        ))}
+        {temas.map((tema) => {
+          const nomeCurso = mapCursoIdNome[tema.cursoId] || 'Curso desconhecido';
+          return (
+            <Picker.Item
+              key={tema.id}
+              label={`${tema.titulo} (${nomeCurso})`}
+              value={tema.id}
+            />
+          );
+        })}
       </Picker>
 
       <Text style={styles.label}>Título do Projeto:</Text>
@@ -144,7 +199,7 @@ export default function RegistrarProjeto() {
         multiline
       />
 
-      <Button title="Registrar Projeto" onPress={handleRegistrarProjeto} color="#007bff" />
+      <Button title="Salvar Projeto" onPress={handleRegistrarProjeto} color="#007bff" />
     </ScrollView>
   );
 }

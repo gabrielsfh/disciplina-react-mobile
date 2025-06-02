@@ -35,15 +35,16 @@ export default function RegisterAlunos({ navigation }) {
       setCursosSelecionados([...cursosSelecionados, cursoId]);
       setPeriodosPorCurso({
         ...periodosPorCurso,
-        [cursoId]: '',
+        [cursoId]: null,
       });
     }
   };
 
   const handlePeriodoChange = (cursoId, periodo) => {
+    const numeroPeriodo = parseInt(periodo, 10);
     setPeriodosPorCurso({
       ...periodosPorCurso,
-      [cursoId]: periodo,
+      [cursoId]: isNaN(numeroPeriodo) ? null : numeroPeriodo,
     });
   };
 
@@ -53,7 +54,10 @@ export default function RegisterAlunos({ navigation }) {
       return;
     }
 
-    const periodosPreenchidos = cursosSelecionados.every(cursoId => periodosPorCurso[cursoId]);
+    const periodosPreenchidos = cursosSelecionados.every(cursoId =>
+      periodosPorCurso[cursoId] !== null && periodosPorCurso[cursoId] !== undefined
+    );
+
     if (!periodosPreenchidos) {
       Alert.alert("Erro", "Selecione um período para cada curso.");
       return;
@@ -148,7 +152,7 @@ export default function RegisterAlunos({ navigation }) {
           <View key={cursoId}>
             <Text style={styles.label}>Período para {curso.nome}:</Text>
             <Picker
-              selectedValue={periodosPorCurso[cursoId] || ''}
+              selectedValue={periodosPorCurso[cursoId]?.toString() || ''}
               onValueChange={(value) => handlePeriodoChange(cursoId, value)}
               style={styles.picker}
             >
