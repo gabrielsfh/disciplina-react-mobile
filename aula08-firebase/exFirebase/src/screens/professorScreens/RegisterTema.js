@@ -87,7 +87,11 @@ export default function ManageTema() {
   const carregarTemaExistente = async (cursoId, periodo) => {
     try {
       const temasRef = collection(db, 'temas');
-      const q = query(temasRef, where('cursoId', '==', cursoId), where('periodo', '==', periodo));
+      const q = query(
+        temasRef,
+        where('cursoId', '==', doc(db, 'cursos', cursoId)),
+        where('periodo', '==', periodo)
+      );
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
@@ -115,12 +119,15 @@ export default function ManageTema() {
     }
 
     try {
+      const cursoRef = doc(db, 'cursos', cursoSelecionado);
+      const professorRef = doc(db, 'usuarios', professorId);
+
       if (temaId) {
         const temaRef = doc(db, 'temas', temaId);
         await updateDoc(temaRef, {
           titulo,
           descricao,
-          professorId
+          professorId: professorRef
         });
 
         Alert.alert('Sucesso', 'Tema atualizado com sucesso!');
@@ -128,9 +135,9 @@ export default function ManageTema() {
         await addDoc(collection(db, 'temas'), {
           titulo,
           descricao,
-          cursoId: cursoSelecionado,
+          cursoId: cursoRef,
           periodo: periodoSelecionado,
-          professorId
+          professorId: professorRef
         });
 
         Alert.alert('Sucesso', 'Tema cadastrado com sucesso!');

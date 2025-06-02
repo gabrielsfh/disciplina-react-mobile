@@ -69,13 +69,14 @@ export default function RegistrarProjeto() {
 
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        const cursoId = data.cursoId;
-        const periodo = data.periodo.toString();
+        // Aqui está a alteração importante:
+        const cursoId = data.cursoId?.id || data.cursoId;
+        const periodo = data.periodo?.toString();
 
-        if (
-          alunoData.cursos.includes(cursoId) &&
-          alunoData.periodos?.[cursoId]?.toString() === periodo
-        ) {
+        const alunoTemCurso = alunoData?.cursos?.includes(cursoId);
+        const alunoTemPeriodo = alunoData?.periodos?.[cursoId]?.toString() === periodo;
+
+        if (alunoTemCurso && alunoTemPeriodo) {
           temasFiltrados.push({ id: docSnap.id, ...data });
         }
       });
@@ -107,9 +108,12 @@ export default function RegistrarProjeto() {
     const tema = temas.find(t => t.id === temaId);
     if (!tema) return;
 
-    const projetoExistente = projetosExistentes.find(
-      p => p.cursoId === tema.cursoId && p.periodo === tema.periodo
-    );
+    const cursoIdTema = tema.cursoId?.id || tema.cursoId; // Extrai o ID string
+
+    const projetoExistente = projetosExistentes.find(p => {
+      const cursoIdProjeto = p.cursoId?.id || p.cursoId;
+      return cursoIdProjeto === cursoIdTema && p.periodo === tema.periodo;
+    });
 
     if (projetoExistente) {
       setNomeProjeto(projetoExistente.nomeProjeto || '');
@@ -119,6 +123,7 @@ export default function RegistrarProjeto() {
       setDescricaoProjeto('');
     }
   };
+
 
   const handleRegistrarProjeto = async () => {
     if (!nomeProjeto || !descricaoProjeto || !temaSelecionado) {
@@ -171,7 +176,8 @@ export default function RegistrarProjeto() {
       >
         <Picker.Item label="Selecione um tema" value="" />
         {temas.map((tema) => {
-          const nomeCurso = mapCursoIdNome[tema.cursoId] || 'Curso desconhecido';
+          const cursoId = tema.cursoId?.id || tema.cursoId;
+          const nomeCurso = mapCursoIdNome[cursoId] || 'Curso desconhecido';
           return (
             <Picker.Item
               key={tema.id}
@@ -180,6 +186,7 @@ export default function RegistrarProjeto() {
             />
           );
         })}
+
       </Picker>
 
       <Text style={styles.label}>Título do Projeto:</Text>

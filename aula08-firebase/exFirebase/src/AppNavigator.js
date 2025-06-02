@@ -14,6 +14,7 @@ import RegisterAlunos from './screens/admScreens/RegisterAlunos';
 import RegisterCursos from './screens/admScreens/RegisterCursos';
 import RegisterAdmin from './screens/admScreens/RegisterAdmin';
 import RegisterProfessor from './screens/admScreens/RegisterProfessor';
+import RegisterAvaliador from './screens/admScreens/RegisterAvaliador';
 
 // Avaliador
 import ListarProjetos from './screens/avaliadorScreens/ListarProjetos';
@@ -30,7 +31,7 @@ const Stack = createNativeStackNavigator();
 export default function AppNavigation() {
     return (
         <NavigationContainer>
-            <Stack.Navigator initialRouteName="Login">
+            <Stack.Navigator initialRouteName="RegisterAvaliador">
                 <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login" }} />
                 <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Menu" }} />
                 <Stack.Screen name="UsersList" component={UsersListScreen} options={{ title: "Usuários Cadastrados" }} />
@@ -41,6 +42,7 @@ export default function AppNavigation() {
                 <Stack.Screen name="RegisterCursos" component={RegisterCursos} options={{ title: "Registrar Cursos" }} />
                 <Stack.Screen name="RegisterAlunos" component={RegisterAlunos} options={{ title: "Registrar Alunos" }} />
                 <Stack.Screen name="RegisterProfessor" component={RegisterProfessor} options={{ title: "Registrar Professor" }} />
+                <Stack.Screen name="RegisterAvaliador" component={RegisterAvaliador} options={{title: "Registrar Avalaidor"}}/>
                 
                 <Stack.Screen name="RegisterTema" component={RegisterTema} options={{ title: "Gerenciar Temas" }} />
                 
