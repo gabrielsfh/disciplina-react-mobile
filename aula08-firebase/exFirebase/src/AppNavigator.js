@@ -58,8 +58,7 @@ export default function AppNavigation() {
                 
                 
                 AVALIADOR
-                <Stack.Screen name="RegisterNotas" component={RegisterNotas} options={{ title: "Registrar Notas" }} />
-                <Stack.Screen name="ListarProjetos" component={ListarProjetos} options={{ title: "Projetos Submetidos" }} />
+               
                 PROFESSOR
                 
                  */}

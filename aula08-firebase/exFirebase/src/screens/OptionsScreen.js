@@ -19,81 +19,93 @@ export default function OptionsScreen({ navigation, route }) {
         <View style={styles.container}>
 
             {tipoUsuario === 'administrador' && (
-                <View style={styles.button}>
-                    <Button
-                        title="Cadastrar Professor"
-                        onPress={() => navigation.navigate('RegisterProfessor')}
-                        color="#55CDFC"
-                    />
-                </View>
+                <>
+                    <View style={styles.button}>
+                        <Button
+                            title="Cadastrar Professor"
+                            onPress={() => navigation.navigate('RegisterProfessor')}
+                            color="#3498DB" // azul
+                        />
+                    </View>
+
+
+                    <View style={styles.button}>
+                        <Button
+                            title="Cadastrar Aluno"
+                            onPress={() => navigation.navigate('RegisterAlunos')}
+                            color="#9B59B6" // roxo
+                        />
+                    </View>
+
+                    <View style={styles.button}>
+                        <Button
+                            title="Cadastrar Avaliador"
+                            onPress={() => navigation.navigate('RegisterAvaliador')}
+                            color="#E74C3C" // vermelho
+                        />
+                    </View>
+
+                    <View style={styles.button}>
+                        <Button
+                            title="Cadastrar Administrador"
+                            onPress={() => navigation.navigate('RegisterAdmin')}
+                            color="#F1C40F" // amarelo
+                        />
+                    </View>
+
+                    <View style={styles.button}>
+                        <Button
+                            title="Cadastrar Curso"
+                            onPress={() => navigation.navigate('RegisterCursos')}
+                            color="#1ABC9C" // verde água
+                        />
+                    </View>
+
+                    <View style={[styles.button, { marginTop: 5 }]}>
+                        <Button
+                            title="Visualizar Usuários"
+                            onPress={() => navigation.navigate('UsersList')}
+                            color="#D35400" // laranja queimado
+                        />
+                    </View>
+                </>
             )}
 
-               {tipoUsuario === 'aluno' && (
+            {tipoUsuario === 'aluno' && (
                 <View style={styles.button}>
                     <Button
                         title="Gerenciar projetos"
                         onPress={() => navigation.navigate('RegisterProjeto')}
-                        color="#55CDFC"
+                        color="#E67E22" // laranja
                     />
                 </View>
             )}
 
-            
-            <View style={styles.button}>
-                <Button
-                    title="Listar Projetos"
-                    onPress={() => navigation.navigate('ListarProjetos')}
-                    color="#F7A8B8"
-                />
-            </View>
+            {tipoUsuario === 'professor' && (
+                <View style={[styles.button, { marginTop: 5 }]}>
+                    <Button
+                        title="Gerenciar temas"
+                        onPress={() => navigation.navigate('RegisterTema', { professorId: userId })}
+                        color="#34495E" // cinza escuro
+                    />
+                </View>
+            )}
 
-            
-
-            <View style={styles.button}>
-                <Button
-                    title="Cadastrar Aluno"
-                    onPress={() => navigation.navigate('RegisterAlunos')}
-                    color="#F7A8B8"
-                />
-            </View>
-
-            <View style={styles.button}>
-                <Button
-                    title="Cadastrar Avaliador"
-                    onPress={() => navigation.navigate('RegisterAvaliador')}
-                    color="#000000"
-                />
-            </View>
-
-            <View style={styles.button}>
-                <Button
-                    title="Cadastrar Administrador"
-                    onPress={() => navigation.navigate('RegisterAdmin')}
-                    color="#FFD800"
-                />
-            </View>
-
-            <View style={styles.button}>
-                <Button
-                    title="Cadastrar Curso"
-                    onPress={() => navigation.navigate('RegisterCursos')}
-                    color="#9B59B6"
-                />
-            </View>
+            {tipoUsuario !== 'aluno' && (
+                <View style={styles.button}>
+                    <Button
+                        title="Avaliar Projetos"
+                        onPress={() => navigation.navigate('ListarProjetos')}
+                        color="#2ECC71" // verde
+                    />
+                </View>
+            )}
 
             <View style={[styles.button, { marginTop: 5 }]}>
                 <Button
-                    title="Gerenciar temas"
-                    onPress={() => navigation.navigate('RegisterTema', { professorId: userId })}
-                    color="#1ABC9C"
-                />
-            </View>
-
-            <View style={[styles.button, { marginTop: 5 }]}>
-                <Button
-                    title="Visualizar Usuários"
-                    onPress={() => navigation.navigate('UsersList')}
-                    color="#1ABC9C"
+                    title="Listar Nota Projetos"
+                    onPress={() => navigation.navigate('ListarNotaProjetos')}
+                    color="#BCDC00"
                 />
             </View>
         </View>
