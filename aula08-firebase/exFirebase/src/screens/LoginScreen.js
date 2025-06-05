@@ -30,7 +30,8 @@ export default function LoginScreen({ navigation }) {
         // Navega para OptionsScreen passando dados do usuário
         navigation.replace('OptionsScreen', {
           userId: uid,
-          tipoUsuario: userData.tipoUsuario
+          tipoUsuario: userData.tipoUsuario,
+          avaliador: userData.avaliador
         });
       } else {
         Alert.alert("Erro", "Dados do usuário não encontrados.");

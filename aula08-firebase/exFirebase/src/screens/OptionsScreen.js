@@ -4,7 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 
 export default function OptionsScreen({ navigation, route }) {
-    const { userId, tipoUsuario } = route.params;
+    const { userId, tipoUsuario, avaliador } = route.params;
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -81,7 +81,7 @@ export default function OptionsScreen({ navigation, route }) {
                 </View>
             )}
 
-            {tipoUsuario === 'professor' && (
+            {(tipoUsuario === 'professor' || tipoUsuario ==='administrador') && (
                 <View style={[styles.button, { marginTop: 5 }]}>
                     <Button
                         title="Gerenciar temas"
@@ -91,15 +91,16 @@ export default function OptionsScreen({ navigation, route }) {
                 </View>
             )}
 
-            {tipoUsuario !== 'aluno' && (
+            {(tipoUsuario === 'avaliador' || (tipoUsuario === 'professor' && avaliador)) && (
                 <View style={styles.button}>
                     <Button
                         title="Avaliar Projetos"
                         onPress={() => navigation.navigate('ListarProjetos')}
-                        color="#2ECC71" // verde
+                        color="#2ECC71"
                     />
                 </View>
             )}
+
 
             <View style={[styles.button, { marginTop: 5 }]}>
                 <Button
