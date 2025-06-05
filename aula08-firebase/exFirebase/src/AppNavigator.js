@@ -15,16 +15,15 @@ import RegisterCursos from './screens/admScreens/RegisterCursos';
 import RegisterAdmin from './screens/admScreens/RegisterAdmin';
 import RegisterProfessor from './screens/admScreens/RegisterProfessor';
 import RegisterAvaliador from './screens/admScreens/RegisterAvaliador';
-
 // Avaliador
 import ListarProjetos from './screens/avaliadorScreens/ListarProjetos';
 import RegisterNotas from './screens/avaliadorScreens/RegisterNotas';
-
 // Professor
 import RegisterTema from './screens/professorScreens/RegisterTema';
-
 // Aluno
 import RegisterProjeto from './screens/alunoScreens/RegisterProjeto';
+// Geral
+import ListarNotaProjetos from './screens/ListarNotasProjetos'
 
 const Stack = createNativeStackNavigator();
 
@@ -51,6 +50,8 @@ export default function AppNavigation() {
 
 
                 <Stack.Screen name="ListarProjetos" component={ListarProjetos} options={{ title: "Projetos Submetidos" }} />
+
+                <Stack.Screen name="ListarNotaProjetos" component={ListarNotaProjetos} options={{ title: "Listar nota projetos"}}/>
 
             {/* 
                 ADM

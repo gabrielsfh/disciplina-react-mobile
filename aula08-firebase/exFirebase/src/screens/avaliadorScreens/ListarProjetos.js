@@ -8,15 +8,14 @@ export default function AvaliacaoProjetos() {
   const [temas, setTemas] = useState([]);
   const [temaSelecionado, setTemaSelecionado] = useState(null);
   const [projetos, setProjetos] = useState([]);
-  const [notas, setNotas] = useState({});          // notas do avaliador logado { projetoId: nota }
-  const [notasMedias, setNotasMedias] = useState({}); // média das notas de todos avaliadores { projetoId: media }
+  const [notas, setNotas] = useState({}); // { projetoId: { execucao, criatividade, vibes } }
+  const [notasMedias, setNotasMedias] = useState({}); // { projetoId: media }
 
   useEffect(() => {
     const fetchTemas = async () => {
       const user = auth.currentUser;
       if (!user) return;
 
-      // Busca usuário para pegar temas permitidos
       const userDoc = await getDocs(query(collection(db, 'usuarios'), where('uid', '==', user.uid)));
       if (userDoc.empty) return;
 
@@ -28,11 +27,9 @@ export default function AvaliacaoProjetos() {
         return;
       }
 
-      // Buscar temas
       const temasQuery = query(collection(db, 'temas'), where('__name__', 'in', temasIds));
       const snapshot = await getDocs(temasQuery);
 
-      // Para cada tema buscar o nome do curso referenciado
       const temasComCurso = await Promise.all(snapshot.docs.map(async doc => {
         const tema = { id: doc.id, ...doc.data() };
         if (tema.cursoId) {
@@ -74,26 +71,35 @@ export default function AvaliacaoProjetos() {
     avaliacoesSnap.docs.forEach(docAval => {
       const data = docAval.data();
       const pId = data.projetoId;
-      const nota = Number(data.nota);
+
+      const e = Number(data.execucao || 0);
+      const c = Number(data.criatividade || 0);
+      const v = Number(data.vibes || 0);
+      const media = (e + c + v) / 3;
 
       if (data.avaliadorId === user.uid) {
-        notasDoAvaliador[pId] = nota;
+        notasDoAvaliador[pId] = {
+          execucao: e,
+          criatividade: c,
+          vibes: v
+        };
       }
 
       if (!somaNotas[pId]) {
         somaNotas[pId] = 0;
         contagemNotas[pId] = 0;
       }
-      somaNotas[pId] += nota;
+
+      somaNotas[pId] += media;
       contagemNotas[pId]++;
     });
 
     const medias = {};
     for (const pId of Object.keys(somaNotas)) {
-      const media = (somaNotas[pId] / contagemNotas[pId]);
+      const media = somaNotas[pId] / contagemNotas[pId];
       medias[pId] = media.toFixed(2);
 
-      // Atualiza a nota média no projeto
+      // Atualiza no projeto
       const projetoRef = doc(db, 'projetos', pId);
       await updateDoc(projetoRef, {
         notaMedia: media
@@ -104,17 +110,24 @@ export default function AvaliacaoProjetos() {
     setNotasMedias(medias);
   };
 
-
-  const handleNotaChange = (projetoId, nota) => {
-    setNotas(prev => ({ ...prev, [projetoId]: nota }));
+  const handleNotaChange = (projetoId, tipo, valor) => {
+    setNotas(prev => ({
+      ...prev,
+      [projetoId]: {
+        ...prev[projetoId],
+        [tipo]: valor
+      }
+    }));
   };
 
   const salvarNota = async (projetoId) => {
     const user = auth.currentUser;
     const nota = notas[projetoId];
-    if (!nota) return;
+    if (!nota || !nota.execucao || !nota.criatividade || !nota.vibes) {
+      alert('Preencha todas as notas antes de salvar.');
+      return;
+    }
 
-    // Verificar se já existe avaliação para esse projeto e avaliador
     const avaliacoesRef = collection(db, 'avaliacoes');
     const q = query(avaliacoesRef,
       where('avaliadorId', '==', user.uid),
@@ -122,23 +135,24 @@ export default function AvaliacaoProjetos() {
     );
     const snapshot = await getDocs(q);
 
+    const dataToSave = {
+      avaliadorId: user.uid,
+      projetoId,
+      temaId: temaSelecionado,
+      execucao: Number(nota.execucao),
+      criatividade: Number(nota.criatividade),
+      vibes: Number(nota.vibes)
+    };
+
     if (snapshot.empty) {
-      // Não existe avaliação - cria nova
-      await addDoc(avaliacoesRef, {
-        avaliadorId: user.uid,
-        projetoId,
-        nota,
-        temaId: temaSelecionado
-      });
+      await addDoc(avaliacoesRef, dataToSave);
     } else {
-      // Já existe - atualiza a avaliação (pega docId)
       const docId = snapshot.docs[0].id;
       const docRef = doc(db, 'avaliacoes', docId);
-      await updateDoc(docRef, { nota });
+      await updateDoc(docRef, dataToSave);
     }
 
     alert('Nota salva com sucesso!');
-    // Recarregar as médias para refletir a nova nota
     carregarProjetosDoTema(temaSelecionado);
   };
 
@@ -160,32 +174,52 @@ export default function AvaliacaoProjetos() {
           <FlatList
             data={projetos}
             keyExtractor={item => item.id}
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <Text style={styles.nome}>{item.nomeProjeto}</Text>
-                <Text style={styles.desc}>{item.descricaoProjeto}</Text>
+            renderItem={({ item }) => {
+              const nota = notas[item.id] || {};
+              return (
+                <View style={styles.card}>
+                  <Text style={styles.nome}>{item.nomeProjeto}</Text>
+                  <Text style={styles.desc}>{item.descricaoProjeto}</Text>
 
-                <Text>Nota média: {notasMedias[item.id] || 'Sem avaliações'}</Text>
+                  {nota.execucao && nota.criatividade && nota.vibes ? (
+                    <Text>
+                      Média de sua nota: {(
+                        (Number(nota.execucao) + Number(nota.criatividade) + Number(nota.vibes)) / 3
+                      ).toFixed(2)}
+                    </Text>
+                  ) : (
+                    <Text>Você ainda não avaliou este projeto.</Text>
+                  )}
 
-                <Picker
-                  selectedValue={notas[item.id] || ''}
-                  onValueChange={(valor) => handleNotaChange(item.id, valor)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecione uma nota" value="" />
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <Picker.Item key={n} label={n.toString()} value={n} />
+                  <Text style={{ fontWeight: 'bold' }}>
+                    Nota total do projeto: {notasMedias[item.id] || 'Sem avaliações'}
+                  </Text>
+
+                  {['execucao', 'criatividade', 'vibes'].map(tipo => (
+                    <View key={tipo}>
+                      <Text>{tipo.charAt(0).toUpperCase() + tipo.slice(1)}</Text>
+                      <Picker
+                        selectedValue={nota[tipo] || ''}
+                        onValueChange={(valor) => handleNotaChange(item.id, tipo, valor)}
+                        style={styles.picker}
+                      >
+                        <Picker.Item label="Selecione" value="" />
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <Picker.Item key={n} label={n.toString()} value={n} />
+                        ))}
+                      </Picker>
+                    </View>
                   ))}
-                </Picker>
 
-                <Button
-                  title="Salvar Nota"
-                  onPress={() => salvarNota(item.id)}
-                  disabled={!notas[item.id]}
-                  color="#008000"
-                />
-              </View>
-            )}
+                  <Button
+                    title="Salvar Nota"
+                    onPress={() => salvarNota(item.id)}
+                    disabled={!nota.execucao || !nota.criatividade || !nota.vibes}
+                    color="#008000"
+                  />
+                </View>
+              );
+            }}
           />
         </>
       )}
