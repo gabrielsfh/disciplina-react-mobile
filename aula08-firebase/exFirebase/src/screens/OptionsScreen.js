@@ -38,6 +38,17 @@ export default function OptionsScreen({ navigation, route }) {
                 </View>
             )}
 
+            
+            <View style={styles.button}>
+                <Button
+                    title="Listar Projetos"
+                    onPress={() => navigation.navigate('ListarProjetos')}
+                    color="#F7A8B8"
+                />
+            </View>
+
+            
+
             <View style={styles.button}>
                 <Button
                     title="Cadastrar Aluno"
@@ -49,7 +60,7 @@ export default function OptionsScreen({ navigation, route }) {
             <View style={styles.button}>
                 <Button
                     title="Cadastrar Avaliador"
-                    onPress={() => navigation.navigate('Register')}
+                    onPress={() => navigation.navigate('RegisterAvaliador')}
                     color="#000000"
                 />
             </View>

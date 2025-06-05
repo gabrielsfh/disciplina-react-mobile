@@ -31,7 +31,7 @@ const Stack = createNativeStackNavigator();
 export default function AppNavigation() {
     return (
         <NavigationContainer>
-            <Stack.Navigator initialRouteName="RegisterAvaliador">
+            <Stack.Navigator initialRouteName="Login">
                 <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login" }} />
                 <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Menu" }} />
                 <Stack.Screen name="UsersList" component={UsersListScreen} options={{ title: "Usuários Cadastrados" }} />
@@ -48,6 +48,10 @@ export default function AppNavigation() {
                 
 
                 <Stack.Screen name="RegisterProjeto" component={RegisterProjeto} options={{ title: "Gerenciar Projeto" }} />
+
+
+                <Stack.Screen name="ListarProjetos" component={ListarProjetos} options={{ title: "Projetos Submetidos" }} />
+
             {/* 
                 ADM
                 
