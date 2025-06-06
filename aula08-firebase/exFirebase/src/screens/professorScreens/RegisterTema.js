@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView } from 'react-native';
-import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../../firebaseConfig';
 import Checkbox from 'expo-checkbox';
@@ -15,12 +15,25 @@ export default function ManageTema() {
   const [professorId, setProfessorId] = useState(null);
   const [temaId, setTemaId] = useState(null);
   const [periodosDoProfessor, setPeriodosDoProfessor] = useState({});
+  const [tipoUsuario, setTipoUsuario] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setProfessorId(user.uid);
-        await carregarCursosDoProfessor(user.uid);
+        const userRef = doc(db, 'usuarios', user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          setTipoUsuario(data.tipoUsuario || 'professor');
+
+          if (data.tipoUsuario === 'administrador') {
+            await carregarTodosCursosEPeriodos();
+          } else {
+            await carregarCursosDoProfessor(user.uid);
+          }
+        }
       }
     });
 
@@ -32,10 +45,7 @@ export default function ManageTema() {
       const profRef = doc(db, 'usuarios', uid);
       const profSnap = await getDoc(profRef);
 
-      if (!profSnap.exists()) {
-        console.warn('Professor não encontrado');
-        return;
-      }
+      if (!profSnap.exists()) return;
 
       const data = profSnap.data();
       if (!data?.cursos) return;
@@ -54,6 +64,27 @@ export default function ManageTema() {
       setCursos(cursosLista);
     } catch (error) {
       console.error('Erro ao carregar cursos:', error);
+    }
+  };
+
+  const carregarTodosCursosEPeriodos = async () => {
+    try {
+      const cursosSnapshot = await getDocs(collection(db, 'cursos'));
+      const cursosLista = [];
+      const todosPeriodos = {};
+
+      cursosSnapshot.forEach(docSnap => {
+        const cursoData = docSnap.data();
+        const quantidadePeriodos = cursoData.quantidadePeriodos || 1;
+
+        cursosLista.push({ id: docSnap.id, ...cursoData });
+        todosPeriodos[docSnap.id] = Array.from({ length: quantidadePeriodos }, (_, i) => (i + 1).toString());
+      });
+
+      setCursos(cursosLista);
+      setPeriodosDoProfessor(todosPeriodos);
+    } catch (error) {
+      console.error('Erro ao carregar todos os cursos e períodos:', error);
     }
   };
 
@@ -132,7 +163,7 @@ export default function ManageTema() {
 
         Alert.alert('Sucesso', 'Tema atualizado com sucesso!');
       } else {
-        await addDoc(collection(db, 'temas'), {
+        const novoTemaRef = await addDoc(collection(db, 'temas'), {
           titulo,
           descricao,
           cursoId: cursoRef,
@@ -140,12 +171,45 @@ export default function ManageTema() {
           professorId: professorRef
         });
 
+        setTemaId(novoTemaRef.id); // <== aqui está a correção
+
         Alert.alert('Sucesso', 'Tema cadastrado com sucesso!');
       }
     } catch (error) {
       console.error('Erro ao salvar tema:', error);
       Alert.alert('Erro', 'Não foi possível salvar o tema.');
     }
+  };
+
+  const handleDeletarTema = async () => {
+    if (!temaId) {
+      Alert.alert('Erro', 'Nenhum tema selecionado para deletar.');
+      return;
+    }
+
+    Alert.alert(
+      'Confirmação',
+      'Tem certeza que deseja deletar este tema? Isso também removera todos os projetos e avaliações associadas a tal, Essa ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Deletar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'temas', temaId));
+              setTitulo('');
+              setDescricao('');
+              setTemaId(null);
+              Alert.alert('Sucesso', 'Tema deletado com sucesso!');
+            } catch (error) {
+              console.error('Erro ao deletar tema:', error);
+              Alert.alert('Erro', 'Não foi possível deletar o tema.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -200,6 +264,12 @@ export default function ManageTema() {
       <View style={{ marginTop: 20 }}>
         <Button title="Salvar Tema" onPress={handleSalvarTema} color="#007bff" />
       </View>
+
+      {temaId && (
+        <View style={{ marginTop: 10 }}>
+          <Button title="Deletar Tema" onPress={handleDeletarTema} color="red" />
+        </View>
+      )}
     </ScrollView>
   );
 }

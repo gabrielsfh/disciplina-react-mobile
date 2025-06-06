@@ -81,7 +81,7 @@ export default function OptionsScreen({ navigation, route }) {
                 </View>
             )}
 
-            {(tipoUsuario === 'professor' || tipoUsuario ==='administrador') && (
+            {(tipoUsuario === 'professor' || tipoUsuario === 'administrador') && (
                 <View style={[styles.button, { marginTop: 5 }]}>
                     <Button
                         title="Gerenciar temas"
@@ -90,6 +90,7 @@ export default function OptionsScreen({ navigation, route }) {
                     />
                 </View>
             )}
+
 
             {(tipoUsuario === 'avaliador' || (tipoUsuario === 'professor' && avaliador)) && (
                 <View style={styles.button}>
