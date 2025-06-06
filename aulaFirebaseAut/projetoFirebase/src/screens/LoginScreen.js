@@ -13,7 +13,7 @@ export default function LoginScreen({ navigation }) {
     try {
       await signInWithEmailAndPassword(auth, email, senha);
       Alert.alert('Sucesso', 'Logado com sucesso!');
-      navigation.navigate('UserList');
+      navigation.navigate('Home');
     } catch (error) {
       Alert.alert('Erro', 'Falha no login');
       console.error(error);

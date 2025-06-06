@@ -8,15 +8,23 @@ const HomeScreen = ({ navigation }) => {
       <Text style={globalStyles.title}>Welcome to the App</Text>
       <TouchableOpacity
         style={globalStyles.button}
-        onPress={() => navigation.navigate('Login')}
-      >
-        <Text style={globalStyles.buttonText}>Login</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={globalStyles.button}
         onPress={() => navigation.navigate('Register')}
       >
-        <Text style={globalStyles.buttonText}>Register</Text>
+        <Text style={globalStyles.buttonText}>Registrar novo usuario</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={globalStyles.button}
+        onPress={() => navigation.navigate('ListScreen')}
+      >
+        <Text style={globalStyles.buttonText}>Lista de Alugueis</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={globalStyles.button}
+        onPress={() => navigation.navigate('FormsScreen')}
+      >
+        <Text style={globalStyles.buttonText}>Registrar Alugueis</Text>
       </TouchableOpacity>
     </View>
   );

@@ -3,15 +3,13 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAS3LThTLlho1Y36f3FaXrU7vYMzfbaeiM",
-  authDomain: "trabalhounipam.firebaseapp.com",
-  projectId: "trabalhounipam",
-  storageBucket: "trabalhounipam.firebasestorage.app",
-  messagingSenderId: "307082883690",
-  appId: "1:307082883690:web:2fe035d2e69d7bb0a81013",
-  measurementId: "G-0V8VJPKMK7"
+  apiKey: "AIzaSyD0NRuc4nRAvigeFbmGg8s0UrUsIkLJBTI",
+  authDomain: "prova01-aluguel-carros-bfa1c.firebaseapp.com",
+  projectId: "prova01-aluguel-carros-bfa1c",
+  storageBucket: "prova01-aluguel-carros-bfa1c.firebasestorage.app",
+  messagingSenderId: "907277531060",
+  appId: "1:907277531060:web:795759e556c0d302b264e1"
 };
-
 
 // Inicializa o App
 const appFirebase = initializeApp(firebaseConfig);

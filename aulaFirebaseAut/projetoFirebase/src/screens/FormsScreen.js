@@ -9,14 +9,15 @@ import {
 } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import auth from '../services/credenciaisFirebaseAuth';
-import useFirebase from '../hooks/useFirebase';
+import useFirebase from '../hooks/useFirebaseForm';
 import globalStyles from '../styles/globalStyles';
 
 export default function RegisterScreen({ navigation }) {
   const [form, setForm] = useState({
-    nome: '',
-    email: '',
-    senha: ''
+    nomeCarro: '',
+    nomeCliente: '',
+    valorAluguel: '',
+    DataAluguel: ''
   });
   const { addUser } = useFirebase();
 
@@ -28,13 +29,9 @@ export default function RegisterScreen({ navigation }) {
       // 1) cadastra no Firestore
       await addUser(form);
       // 2) cadastra no Auth
-      await createUserWithEmailAndPassword(
-        auth,
-        form.email,
-        form.senha
-      );
+    
       Alert.alert('Sucesso', 'Usuário cadastrado!');
-      navigation.navigate('Login');
+      navigation.navigate('ListScreen');
     } catch (error) {
       Alert.alert('Erro', 'Falha no cadastro');
       console.error(error);
@@ -44,12 +41,12 @@ export default function RegisterScreen({ navigation }) {
   return (
     <View style={globalStyles.container}>
       <Text style={globalStyles.title}>Cadastro</Text>
-      {['nome', 'email', 'senha'].map((field) => (
+      {['nomeCarro', 'nomeCliente', 'valorAluguel', 'DataAluguel'].map((field) => (
         <TextInput
           key={field}
           placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
           style={globalStyles.input}
-          secureTextEntry={field === 'senha'}
+          
           value={form[field]}
           onChangeText={(v) => handleChange(field, v)}
         />
