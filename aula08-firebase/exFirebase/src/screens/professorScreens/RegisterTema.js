@@ -187,9 +187,14 @@ export default function ManageTema() {
       return;
     }
 
+    if (tipoUsuario !== 'administrador') {
+      Alert.alert('Permissão negada', 'Somente administradores podem deletar temas.');
+      return;
+    }
+
     Alert.alert(
       'Confirmação',
-      'Tem certeza que deseja deletar este tema? Isso também removera todos os projetos e avaliações associadas a tal, Essa ação não pode ser desfeita.',
+      'Tem certeza que deseja deletar este tema? Isso também removerá todos os projetos, avaliações e a associação com professores/avaliadores. Essa ação não pode ser desfeita.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -197,14 +202,43 @@ export default function ManageTema() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, 'temas', temaId));
+              const temaRef = doc(db, 'temas', temaId);
+
+              // Deletar projetos
+              const projetosQuery = query(collection(db, 'projetos'), where('temaId', '==', temaRef));
+              const projetosSnapshot = await getDocs(projetosQuery);
+              for (const projetoDoc of projetosSnapshot.docs) {
+                await deleteDoc(projetoDoc.ref);
+              }
+
+              // Deletar avaliações
+              const avaliacoesQuery = query(collection(db, 'avaliacoes'), where('temaId', '==', temaRef));
+              const avaliacoesSnapshot = await getDocs(avaliacoesQuery);
+              for (const avaliacaoDoc of avaliacoesSnapshot.docs) {
+                await deleteDoc(avaliacaoDoc.ref);
+              }
+
+              // Remover o tema do array 'temas' dos usuários
+              const usuariosSnapshot = await getDocs(collection(db, 'usuarios'));
+              for (const usuarioDoc of usuariosSnapshot.docs) {
+                const usuarioData = usuarioDoc.data();
+                if (Array.isArray(usuarioData.temas) && usuarioData.temas.includes(temaId)) {
+                  const novosTemas = usuarioData.temas.filter(id => id !== temaId);
+                  await updateDoc(usuarioDoc.ref, { temas: novosTemas });
+                }
+              }
+
+              // Deletar o tema
+              await deleteDoc(temaRef);
+
               setTitulo('');
               setDescricao('');
               setTemaId(null);
-              Alert.alert('Sucesso', 'Tema deletado com sucesso!');
+
+              Alert.alert('Sucesso', 'Tema, projetos, avaliações e vínculos com usuários removidos.');
             } catch (error) {
-              console.error('Erro ao deletar tema:', error);
-              Alert.alert('Erro', 'Não foi possível deletar o tema.');
+              console.error('Erro ao deletar tema e relacionados:', error);
+              Alert.alert('Erro', 'Falha ao deletar o tema e seus vínculos.');
             }
           }
         }
@@ -265,11 +299,12 @@ export default function ManageTema() {
         <Button title="Salvar Tema" onPress={handleSalvarTema} color="#007bff" />
       </View>
 
-      {temaId && (
+      {temaId && tipoUsuario === 'administrador' && (
         <View style={{ marginTop: 10 }}>
           <Button title="Deletar Tema" onPress={handleDeletarTema} color="red" />
         </View>
       )}
+
     </ScrollView>
   );
 }

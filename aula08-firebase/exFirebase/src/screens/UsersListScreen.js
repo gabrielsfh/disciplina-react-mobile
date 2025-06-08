@@ -36,12 +36,13 @@ export default function UsersListScreen({ navigation }) {
         projetosSnapshot.forEach((doc) => {
           const data = doc.data();
           if (data.alunoId) {
-            if (!projetos[data.alunoId]) projetos[data.alunoId] = [];
-            projetos[data.alunoId].push({
+            const alunoRef = data.alunoId.id;
+            if (!projetos[alunoRef]) projetos[alunoRef] = [];
+            projetos[alunoRef].push({
               nomeProjeto: data.nomeProjeto,
               descricaoProjeto: data.descricaoProjeto,
-              temaId: data.temaId,
-              cursoId: data.cursoId?.id || '',
+              temaId: typeof data.temaId === 'object' ? data.temaId?.id : data.temaId,
+              cursoId: typeof data.cursoId === 'object' ? data.cursoId?.id : data.cursoId,
               periodo: data.periodo,
               notaMedia: data.notaMedia,
             });
@@ -53,7 +54,7 @@ export default function UsersListScreen({ navigation }) {
         const usuariosSnapshot = await getDocs(collection(db, 'usuarios'));
         const usersList = usuariosSnapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
         setUsuarios(usersList);
       } catch (error) {
@@ -66,12 +67,13 @@ export default function UsersListScreen({ navigation }) {
     fetchData();
   }, []);
 
+
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
   }
 
   const handleEditUser = (user) => {
-    navigation.navigate('EditarUserScreen', { uid: user.id });
+    navigation.navigate('EditarAlunoScreen', { uid: user.id });
   };
 
   const renderUsuario = ({ item }) => (
@@ -85,11 +87,14 @@ export default function UsersListScreen({ navigation }) {
       {Array.isArray(item.temas) && item.temas.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.subtitle}>Temas:</Text>
-          {item.temas.map((temaId, index) => (
-            <Text key={index}>• {temasMap[temaId] || temaId}</Text>
-          ))}
+          {item.temas.map((temaId, index) => {
+            const id = typeof temaId === 'object' && temaId.id ? temaId.id : temaId;
+            return <Text key={index}>• {temasMap[id] ? temasMap[id] : id}</Text>;
+
+          })}
         </View>
       )}
+
 
       {Array.isArray(item.cursos) && item.cursos.length > 0 && (
         <View style={styles.section}>
@@ -115,8 +120,8 @@ export default function UsersListScreen({ navigation }) {
             <View key={index} style={styles.projectItem}>
               <Text>• {projeto.nomeProjeto || 'Sem título'}</Text>
               <Text>  Descrição: {projeto.descricaoProjeto || '-'}</Text>
-              <Text>  Tema: {temasMap[projeto.temaId] || projeto.temaId}</Text>
-              <Text>  Curso: {cursosMap[projeto.cursoId] || projeto.cursoId || '-'}</Text> {/* linha adicionada */}
+              <Text>  Tema: {temasMap[projeto.temaId] || 'Tema não encontrado'}</Text>
+              <Text>  Curso: {cursosMap[projeto.cursoId] || '-'}</Text>
               <Text>  Período: {projeto.periodo || '-'}</Text>
               <Text>  Nota Média: {projeto.notaMedia !== undefined ? projeto.notaMedia.toFixed(2) : '-'}</Text>
             </View>
@@ -125,7 +130,7 @@ export default function UsersListScreen({ navigation }) {
       )}
 
       <TouchableOpacity style={styles.editButton} onPress={() => handleEditUser(item)}>
-        <Text style={styles.editButtonText}>Editar</Text>
+        <Text style={styles.editButtonText}>Acessar</Text>
       </TouchableOpacity>
     </View>
   );

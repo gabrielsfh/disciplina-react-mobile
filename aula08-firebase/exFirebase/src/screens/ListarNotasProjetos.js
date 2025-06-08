@@ -41,6 +41,14 @@ export default function ListaProjetos() {
     const q = query(collection(db, 'projetos'), where('temaId', '==', temaRef));
     const snapshot = await getDocs(q);
     const listaProjetos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Ordenar pela notaMedia (maior primeiro)
+    listaProjetos.sort((a, b) => {
+      const notaA = a.notaMedia ?? -1;
+      const notaB = b.notaMedia ?? -1;
+      return notaB - notaA;
+    });
+
     setProjetos(listaProjetos);
   };
 
@@ -70,7 +78,7 @@ export default function ListaProjetos() {
             keyExtractor={item => item.id}
             renderItem={({ item, index }) => (
               <View style={[styles.card, { backgroundColor: colors[index % colors.length] }]}>
-                <Text style={styles.nome}>{item.nomeProjeto}</Text>
+                <Text style={styles.nome}>{`${index + 1}. ${item.nomeProjeto}`}</Text>
                 <Text style={styles.desc}>{item.descricaoProjeto}</Text>
                 <Text style={styles.nota}>
                   Nota total do projeto:{' '}

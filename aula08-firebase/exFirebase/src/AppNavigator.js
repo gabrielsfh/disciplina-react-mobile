@@ -6,7 +6,7 @@ import HomeScreen from './screens/HomeScreen';
 import LoginScreen from './screens/LoginScreen';
 
 import UsersListScreen from './screens/UsersListScreen';
-import EditarUserScreen from './screens/admScreens/EditarUserScreen';
+import EditarAlunoScreen from './screens/admScreens/EditarAlunoScreen';
 
 import OptionsScreen from './screens/OptionsScreen'
 
@@ -31,12 +31,12 @@ const Stack = createNativeStackNavigator();
 export default function AppNavigation() {
     return (
         <NavigationContainer>
-            <Stack.Navigator initialRouteName="Login">
+            <Stack.Navigator initialRouteName="UsersList">
                 <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login" }} />
                 <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Menu" }} />
 
                 <Stack.Screen name="UsersList" component={UsersListScreen} options={{ title: "Usuários Cadastrados" }} />
-                <Stack.Screen name="EditarUserScreen" component={EditarUserScreen} options={{ title: "Editar Usuarios"}}/>
+                <Stack.Screen name="EditarAlunoScreen" component={EditarAlunoScreen} options={{ title: "Editar Aluno"}}/>
 
                 <Stack.Screen name="OptionsScreen" component={OptionsScreen} options={{ title: "Opções" }} />
 
