@@ -10,7 +10,7 @@ import {
   where,
   doc,
   addDoc,
-  updateDoc
+  updateDoc,
 } from 'firebase/firestore';
 import { Picker } from '@react-native-picker/picker';
 
@@ -55,9 +55,8 @@ export default function RegistrarProjeto() {
   const carregarCursos = async () => {
     const snapshot = await getDocs(collection(db, 'cursos'));
     const map = {};
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      map[doc.id] = data.nome;
+    snapshot.forEach((doc) => {
+      map[doc.id] = doc.data().nome;
     });
     setMapCursoIdNome(map);
   };
@@ -67,10 +66,9 @@ export default function RegistrarProjeto() {
       const snapshot = await getDocs(collection(db, 'temas'));
       const temasFiltrados = [];
 
-      snapshot.forEach(docSnap => {
+      snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        // Aqui está a alteração importante:
-        const cursoId = data.cursoId?.id || data.cursoId;
+        const cursoId = data.cursoId?.id || data.cursoId; // Pega o ID do curso
         const periodo = data.periodo?.toString();
 
         const alunoTemCurso = alunoData?.cursos?.includes(cursoId);
@@ -84,17 +82,24 @@ export default function RegistrarProjeto() {
       setTemas(temasFiltrados);
     } catch (error) {
       console.error('Erro ao carregar temas:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os temas.');
     }
   };
 
   const verificarProjetosExistentes = async (alunoId) => {
-    const q = query(collection(db, 'projetos'), where('alunoId', '==', alunoId));
-    const snap = await getDocs(q);
-    const projetos = snap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    setProjetosExistentes(projetos);
+    try {
+      const alunoRef = doc(db, 'usuarios', alunoId);
+      const q = query(collection(db, 'projetos'), where('alunoId', '==', alunoRef));
+      const snap = await getDocs(q);
+      const projetos = snap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setProjetosExistentes(projetos);
+    } catch (error) {
+      console.error('Erro ao verificar projetos:', error);
+      Alert.alert('Erro', 'Não foi possível verificar projetos existentes.');
+    }
   };
 
   const limparCampos = () => {
@@ -105,12 +110,12 @@ export default function RegistrarProjeto() {
 
   const handleSelecionarTema = (temaId) => {
     setTemaSelecionado(temaId);
-    const tema = temas.find(t => t.id === temaId);
+    const tema = temas.find((t) => t.id === temaId);
     if (!tema) return;
 
-    const cursoIdTema = tema.cursoId?.id || tema.cursoId; // Extrai o ID string
+    const cursoIdTema = tema.cursoId?.id || tema.cursoId;
 
-    const projetoExistente = projetosExistentes.find(p => {
+    const projetoExistente = projetosExistentes.find((p) => {
       const cursoIdProjeto = p.cursoId?.id || p.cursoId;
       return cursoIdProjeto === cursoIdTema && p.periodo === tema.periodo;
     });
@@ -124,16 +129,25 @@ export default function RegistrarProjeto() {
     }
   };
 
-
   const handleRegistrarProjeto = async () => {
     if (!nomeProjeto || !descricaoProjeto || !temaSelecionado) {
       Alert.alert('Erro', 'Preencha todos os campos.');
       return;
     }
 
-    const tema = temas.find(t => t.id === temaSelecionado);
+    const tema = temas.find((t) => t.id === temaSelecionado);
+    if (!tema) {
+      Alert.alert('Erro', 'Tema selecionado inválido.');
+      return;
+    }
+
+    const alunoRef = doc(db, 'usuarios', usuario.uid);
+    const temaRef = doc(db, 'temas', tema.id);
+    const cursoId = tema.cursoId?.id || tema.cursoId;
+    const cursoRef = doc(db, 'cursos', cursoId);
+
     const projetoExistente = projetosExistentes.find(
-      p => p.cursoId === tema.cursoId && p.periodo === tema.periodo
+      (p) => (p.cursoId?.id || p.cursoId) === cursoId && p.periodo === tema.periodo
     );
 
     try {
@@ -141,17 +155,21 @@ export default function RegistrarProjeto() {
         const projetoRef = doc(db, 'projetos', projetoExistente.id);
         await updateDoc(projetoRef, {
           nomeProjeto,
-          descricaoProjeto
+          descricaoProjeto,
+          temaId: temaRef,
+          alunoId: alunoRef,
+          cursoId: cursoRef,
+          periodo: tema.periodo,
         });
         Alert.alert('Sucesso', 'Projeto atualizado com sucesso!');
       } else {
         await addDoc(collection(db, 'projetos'), {
-          alunoId: usuario.uid,
-          cursoId: tema.cursoId,
+          alunoId: alunoRef,
+          cursoId: cursoRef,
           periodo: tema.periodo,
-          temaId: tema.id,
+          temaId: temaRef,
           nomeProjeto,
-          descricaoProjeto
+          descricaoProjeto,
         });
         Alert.alert('Sucesso', 'Projeto registrado com sucesso!');
       }
@@ -186,7 +204,6 @@ export default function RegistrarProjeto() {
             />
           );
         })}
-
       </Picker>
 
       <Text style={styles.label}>Título do Projeto:</Text>
@@ -214,29 +231,29 @@ export default function RegistrarProjeto() {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 20
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
-    marginTop: 12
+    marginTop: 12,
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 4,
     padding: 10,
-    marginTop: 4
+    marginTop: 4,
   },
   picker: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 4,
     marginTop: 4,
-    marginBottom: 12
-  }
+    marginBottom: 12,
+  },
 });

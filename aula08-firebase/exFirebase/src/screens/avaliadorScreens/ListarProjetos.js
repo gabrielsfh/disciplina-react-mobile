@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, FlatList, StyleSheet } from 'react-native';
-import { getDocs, collection, query, where, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { getDocs, collection, query, where, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig';
 import { Picker } from '@react-native-picker/picker';
 
@@ -16,34 +16,34 @@ export default function AvaliacaoProjetos() {
       const user = auth.currentUser;
       if (!user) return;
 
-      const userDoc = await getDocs(query(collection(db, 'usuarios'), where('uid', '==', user.uid)));
-      if (userDoc.empty) return;
+      const userRef = doc(db, 'usuarios', user.uid);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) return;
 
-      const avaliador = userDoc.docs[0].data();
-      const temasIds = avaliador.temas || [];
+      const avaliador = userSnap.data();
+      const temasRefs = avaliador.temas || []; // Assume que temas é um array de referências
 
-      if (temasIds.length === 0) {
+      if (temasRefs.length === 0) {
         setTemas([]);
         return;
       }
 
-      const temasQuery = query(collection(db, 'temas'), where('__name__', 'in', temasIds));
+      const temasQuery = query(collection(db, 'temas'), where('__name__', 'in', temasRefs));
       const snapshot = await getDocs(temasQuery);
 
-      const temasComCurso = await Promise.all(snapshot.docs.map(async doc => {
-        const tema = { id: doc.id, ...doc.data() };
-        if (tema.cursoId) {
-          const cursoSnap = await getDocs(query(collection(db, 'cursos'), where('__name__', '==', tema.cursoId.id || tema.cursoId)));
-          if (!cursoSnap.empty) {
-            tema.nomeCurso = cursoSnap.docs[0].data().nome || 'Curso desconhecido';
+      const temasComCurso = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const tema = { id: docSnap.id, ...docSnap.data() };
+          if (tema.cursoId) {
+            const cursoRef = tema.cursoId; // cursoId é uma Reference
+            const cursoSnap = await getDoc(cursoRef);
+            tema.nomeCurso = cursoSnap.exists() ? cursoSnap.data().nome || 'Curso desconhecido' : 'Curso desconhecido';
           } else {
             tema.nomeCurso = 'Curso desconhecido';
           }
-        } else {
-          tema.nomeCurso = 'Curso desconhecido';
-        }
-        return tema;
-      }));
+          return tema;
+        })
+      );
 
       setTemas(temasComCurso);
     };
@@ -53,35 +53,42 @@ export default function AvaliacaoProjetos() {
 
   const carregarProjetosDoTema = async (temaId) => {
     setTemaSelecionado(temaId);
-    const q = query(collection(db, 'projetos'), where('temaId', '==', temaId));
+    const temaRef = doc(db, 'temas', temaId);
+    const q = query(collection(db, 'projetos'), where('temaId', '==', temaRef));
     const snapshot = await getDocs(q);
-    const listaProjetos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const listaProjetos = await Promise.all(
+      snapshot.docs.map(async (docSnap) => {
+        const data = docSnap.data();
+        return { id: docSnap.id, ...data };
+      })
+    );
     setProjetos(listaProjetos);
 
     const user = auth.currentUser;
     if (!user) return;
 
-    const avaliacoesQuery = query(collection(db, 'avaliacoes'), where('temaId', '==', temaId));
+    const avaliadorRef = doc(db, 'usuarios', user.uid);
+    const avaliacoesQuery = query(collection(db, 'avaliacoes'), where('temaId', '==', temaRef));
     const avaliacoesSnap = await getDocs(avaliacoesQuery);
 
     const notasDoAvaliador = {};
     const somaNotas = {};
     const contagemNotas = {};
 
-    avaliacoesSnap.docs.forEach(docAval => {
+    avaliacoesSnap.docs.forEach((docAval) => {
       const data = docAval.data();
-      const pId = data.projetoId;
+      const pId = data.projetoId.id; // Extrai o ID da referência do projeto
 
       const e = Number(data.execucao || 0);
       const c = Number(data.criatividade || 0);
       const v = Number(data.vibes || 0);
       const media = (e + c + v) / 3;
 
-      if (data.avaliadorId === user.uid) {
+      if (data.avaliadorId.id === user.uid) {
         notasDoAvaliador[pId] = {
           execucao: e,
           criatividade: c,
-          vibes: v
+          vibes: v,
         };
       }
 
@@ -99,10 +106,9 @@ export default function AvaliacaoProjetos() {
       const media = somaNotas[pId] / contagemNotas[pId];
       medias[pId] = media.toFixed(2);
 
-      // Atualiza no projeto
       const projetoRef = doc(db, 'projetos', pId);
       await updateDoc(projetoRef, {
-        notaMedia: media
+        notaMedia: media,
       });
     }
 
@@ -111,12 +117,12 @@ export default function AvaliacaoProjetos() {
   };
 
   const handleNotaChange = (projetoId, tipo, valor) => {
-    setNotas(prev => ({
+    setNotas((prev) => ({
       ...prev,
       [projetoId]: {
         ...prev[projetoId],
-        [tipo]: valor
-      }
+        [tipo]: valor,
+      },
     }));
   };
 
@@ -128,20 +134,25 @@ export default function AvaliacaoProjetos() {
       return;
     }
 
+    const avaliadorRef = doc(db, 'usuarios', user.uid);
+    const projetoRef = doc(db, 'projetos', projetoId);
+    const temaRef = doc(db, 'temas', temaSelecionado);
+
     const avaliacoesRef = collection(db, 'avaliacoes');
-    const q = query(avaliacoesRef,
-      where('avaliadorId', '==', user.uid),
-      where('projetoId', '==', projetoId)
+    const q = query(
+      avaliacoesRef,
+      where('avaliadorId', '==', avaliadorRef),
+      where('projetoId', '==', projetoRef)
     );
     const snapshot = await getDocs(q);
 
     const dataToSave = {
-      avaliadorId: user.uid,
-      projetoId,
-      temaId: temaSelecionado,
+      avaliadorId: avaliadorRef,
+      projetoId: projetoRef,
+      temaId: temaRef,
       execucao: Number(nota.execucao),
       criatividade: Number(nota.criatividade),
-      vibes: Number(nota.vibes)
+      vibes: Number(nota.vibes),
     };
 
     if (snapshot.empty) {
@@ -159,7 +170,7 @@ export default function AvaliacaoProjetos() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Selecione um Tema</Text>
-      {temas.map(t => (
+      {temas.map((t) => (
         <Button
           key={t.id}
           title={`${t.titulo} (${t.nomeCurso} ${t.periodo}º)`}
@@ -173,7 +184,7 @@ export default function AvaliacaoProjetos() {
           <Text style={styles.title}>Projetos do Tema</Text>
           <FlatList
             data={projetos}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
             renderItem={({ item }) => {
               const nota = notas[item.id] || {};
               return (
@@ -183,9 +194,8 @@ export default function AvaliacaoProjetos() {
 
                   {nota.execucao && nota.criatividade && nota.vibes ? (
                     <Text>
-                      Média de sua nota: {(
-                        (Number(nota.execucao) + Number(nota.criatividade) + Number(nota.vibes)) / 3
-                      ).toFixed(2)}
+                      Média de sua nota:{' '}
+                      {((Number(nota.execucao) + Number(nota.criatividade) + Number(nota.vibes)) / 3).toFixed(2)}
                     </Text>
                   ) : (
                     <Text>Você ainda não avaliou este projeto.</Text>
@@ -195,7 +205,7 @@ export default function AvaliacaoProjetos() {
                     Nota total do projeto: {notasMedias[item.id] || 'Sem avaliações'}
                   </Text>
 
-                  {['execucao', 'criatividade', 'vibes'].map(tipo => (
+                  {['execucao', 'criatividade', 'vibes'].map((tipo) => (
                     <View key={tipo}>
                       <Text>{tipo.charAt(0).toUpperCase() + tipo.slice(1)}</Text>
                       <Picker
@@ -204,7 +214,7 @@ export default function AvaliacaoProjetos() {
                         style={styles.picker}
                       >
                         <Picker.Item label="Selecione" value="" />
-                        {[1, 2, 3, 4, 5].map(n => (
+                        {[1, 2, 3, 4, 5].map((n) => (
                           <Picker.Item key={n} label={n.toString()} value={n} />
                         ))}
                       </Picker>
@@ -234,9 +244,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f1f1',
     padding: 12,
     marginVertical: 6,
-    borderRadius: 8
+    borderRadius: 8,
   },
   nome: { fontSize: 16, fontWeight: 'bold' },
   desc: { fontSize: 14, marginVertical: 4 },
-  picker: { backgroundColor: '#fff', marginVertical: 6 }
+  picker: { backgroundColor: '#fff', marginVertical: 6 },
 });

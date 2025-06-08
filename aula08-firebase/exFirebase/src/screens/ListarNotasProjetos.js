@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { getDocs, collection, query, where } from 'firebase/firestore';
-import { auth, db } from '../firebaseConfig';
-import { Button } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Button } from 'react-native';
+import { getDocs, collection, query, where, doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 
 const colors = ['#e0f7fa', '#e8f5e9', '#fff8e1', '#fce4ec', '#ede7f6'];
 
@@ -14,24 +13,21 @@ export default function ListaProjetos() {
   useEffect(() => {
     const fetchTemas = async () => {
       const snapshot = await getDocs(collection(db, 'temas'));
-      const temasComCurso = await Promise.all(snapshot.docs.map(async docTema => {
-        const tema = { id: docTema.id, ...docTema.data() };
+      const temasComCurso = await Promise.all(
+        snapshot.docs.map(async (docTema) => {
+          const tema = { id: docTema.id, ...docTema.data() };
 
-        if (tema.cursoId) {
-          const cursoSnap = await getDocs(
-            query(collection(db, 'cursos'), where('__name__', '==', tema.cursoId.id || tema.cursoId))
-          );
-          if (!cursoSnap.empty) {
-            tema.nomeCurso = cursoSnap.docs[0].data().nome || 'Curso desconhecido';
+          if (tema.cursoId) {
+            const cursoRef = typeof tema.cursoId === 'object' ? tema.cursoId : doc(db, 'cursos', tema.cursoId);
+            const cursoSnap = await getDoc(cursoRef);
+            tema.nomeCurso = cursoSnap.exists() ? cursoSnap.data().nome : 'Curso desconhecido';
           } else {
             tema.nomeCurso = 'Curso desconhecido';
           }
-        } else {
-          tema.nomeCurso = 'Curso desconhecido';
-        }
 
-        return tema;
-      }));
+          return tema;
+        })
+      );
 
       setTemas(temasComCurso);
     };
@@ -41,7 +37,8 @@ export default function ListaProjetos() {
 
   const carregarProjetosDoTema = async (temaId) => {
     setTemaSelecionado(temaId);
-    const q = query(collection(db, 'projetos'), where('temaId', '==', temaId));
+    const temaRef = doc(db, 'temas', temaId);
+    const q = query(collection(db, 'projetos'), where('temaId', '==', temaRef));
     const snapshot = await getDocs(q);
     const listaProjetos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setProjetos(listaProjetos);
@@ -53,11 +50,17 @@ export default function ListaProjetos() {
       {temas.map(t => (
         <Button
           key={t.id}
-          title={`${t.titulo} (${t.nomeCurso} ${t.periodo}º)`} 
+          title={`${t.titulo} (${t.nomeCurso} ${t.periodo}º)`}
           onPress={() => carregarProjetosDoTema(t.id)}
           color={temaSelecionado === t.id ? '#1565c0' : '#78909c'}
         />
       ))}
+
+      {temaSelecionado && projetos.length === 0 && (
+        <Text style={styles.semProjetos}>
+          Projetos ainda não foram cadastrados para esse tema.
+        </Text>
+      )}
 
       {projetos.length > 0 && (
         <>
@@ -71,7 +74,7 @@ export default function ListaProjetos() {
                 <Text style={styles.desc}>{item.descricaoProjeto}</Text>
                 <Text style={styles.nota}>
                   Nota total do projeto:{' '}
-                  {item.notaMedia ? Number(item.notaMedia).toFixed(2) : 'Sem avaliações'}
+                  {item.notaMedia !== undefined ? Number(item.notaMedia).toFixed(2) : 'Sem avaliações'}
                 </Text>
               </View>
             )}
@@ -97,4 +100,5 @@ const styles = StyleSheet.create({
   nome: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
   desc: { fontSize: 14, marginBottom: 6 },
   nota: { fontSize: 14, fontWeight: 'bold', color: '#1b5e20' },
+  semProjetos: { marginTop: 20, fontSize: 16, color: '#888', textAlign: 'center' },
 });

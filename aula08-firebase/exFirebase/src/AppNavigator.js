@@ -6,6 +6,7 @@ import HomeScreen from './screens/HomeScreen';
 import LoginScreen from './screens/LoginScreen';
 
 import UsersListScreen from './screens/UsersListScreen';
+import EditarUserScreen from './screens/admScreens/EditarUserScreen';
 
 import OptionsScreen from './screens/OptionsScreen'
 
@@ -33,7 +34,9 @@ export default function AppNavigation() {
             <Stack.Navigator initialRouteName="Login">
                 <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login" }} />
                 <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Menu" }} />
+
                 <Stack.Screen name="UsersList" component={UsersListScreen} options={{ title: "Usuários Cadastrados" }} />
+                <Stack.Screen name="EditarUserScreen" component={EditarUserScreen} options={{ title: "Editar Usuarios"}}/>
 
                 <Stack.Screen name="OptionsScreen" component={OptionsScreen} options={{ title: "Opções" }} />
 
