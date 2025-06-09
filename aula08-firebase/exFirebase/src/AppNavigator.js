@@ -16,6 +16,7 @@ import RegisterCursos from './screens/admScreens/RegisterCursos';
 import RegisterAdmin from './screens/admScreens/RegisterAdmin';
 import RegisterProfessor from './screens/admScreens/RegisterProfessor';
 import RegisterAvaliador from './screens/admScreens/RegisterAvaliador';
+import EditarProfessorScreen from './screens/admScreens/EditarProfessorScreen'
 // Avaliador
 import ListarProjetos from './screens/avaliadorScreens/ListarProjetos';
 import RegisterNotas from './screens/avaliadorScreens/RegisterNotas';
@@ -37,6 +38,7 @@ export default function AppNavigation() {
 
                 <Stack.Screen name="UsersList" component={UsersListScreen} options={{ title: "Usuários Cadastrados" }} />
                 <Stack.Screen name="EditarAlunoScreen" component={EditarAlunoScreen} options={{ title: "Editar Aluno"}}/>
+                <Stack.Screen name="EditarProfessorScreen" component={EditarProfessorScreen} options={{ title: "Editar Aluno"}}/>
 
                 <Stack.Screen name="OptionsScreen" component={OptionsScreen} options={{ title: "Opções" }} />
 

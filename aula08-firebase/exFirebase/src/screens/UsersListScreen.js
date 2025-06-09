@@ -1,5 +1,4 @@
-// src/screens/UsersListScreen.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
@@ -11,69 +10,83 @@ export default function UsersListScreen({ navigation }) {
   const [projetosMap, setProjetosMap] = useState({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Cursos
-        const cursosSnapshot = await getDocs(collection(db, 'cursos'));
-        const cursos = {};
-        cursosSnapshot.forEach((doc) => {
-          cursos[doc.id] = doc.data().nome;
+  // Função para buscar os dados
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // Cursos
+      const cursosSnapshot = await getDocs(collection(db, 'cursos'));
+      const cursos = {};
+      cursosSnapshot.forEach((doc) => {
+        cursos[doc.id] = doc.data().nome;
+      });
+      setCursosMap(cursos);
+
+      // Temas
+      const temasSnapshot = await getDocs(collection(db, 'temas'));
+      const temas = {};
+      temasSnapshot.forEach((doc) => {
+        temas[doc.id] = doc.data().titulo;
+      });
+      setTemasMap(temas);
+
+      // Projetos
+      const projetosSnapshot = await getDocs(collection(db, 'projetos'));
+      const projetos = {};
+      projetosSnapshot.forEach((doc) => {
+        const data = doc.data();
+        const alunoRef = typeof data.alunoId === 'object' && data.alunoId?.id ? data.alunoId.id : data.alunoId;
+        if (!alunoRef) return;
+        if (!projetos[alunoRef]) projetos[alunoRef] = [];
+        projetos[alunoRef].push({
+          nomeProjeto: data.nomeProjeto,
+          descricaoProjeto: data.descricaoProjeto,
+          temaId: typeof data.temaId === 'object' && data.temaId?.id ? data.temaId.id : data.temaId,
+          cursoId: typeof data.cursoId === 'object' && data.cursoId?.id ? data.cursoId.id : data.cursoId,
+          periodo: data.periodo,
+          notaMedia: data.notaMedia,
         });
-        setCursosMap(cursos);
+      });
+      setProjetosMap(projetos);
 
-        // Temas
-        const temasSnapshot = await getDocs(collection(db, 'temas'));
-        const temas = {};
-        temasSnapshot.forEach((doc) => {
-          temas[doc.id] = doc.data().titulo;
-        });
-        setTemasMap(temas);
-
-        // Projetos
-        const projetosSnapshot = await getDocs(collection(db, 'projetos'));
-        const projetos = {};
-        projetosSnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.alunoId) {
-            const alunoRef = data.alunoId.id;
-            if (!projetos[alunoRef]) projetos[alunoRef] = [];
-            projetos[alunoRef].push({
-              nomeProjeto: data.nomeProjeto,
-              descricaoProjeto: data.descricaoProjeto,
-              temaId: typeof data.temaId === 'object' ? data.temaId?.id : data.temaId,
-              cursoId: typeof data.cursoId === 'object' ? data.cursoId?.id : data.cursoId,
-              periodo: data.periodo,
-              notaMedia: data.notaMedia,
-            });
-          }
-        });
-        setProjetosMap(projetos);
-
-        // Usuários
-        const usuariosSnapshot = await getDocs(collection(db, 'usuarios'));
-        const usersList = usuariosSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setUsuarios(usersList);
-      } catch (error) {
-        console.error("Erro ao buscar dados: ", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+      // Usuários
+      const usuariosSnapshot = await getDocs(collection(db, 'usuarios'));
+      const usersList = usuariosSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setUsuarios(usersList);
+    } catch (error) {
+      console.error("Erro ao buscar dados: ", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  // Carregar dados ao montar a tela e quando ela ganhar foco
+  useEffect(() => {
+    fetchData();
+
+    // Listener para quando a tela ganha foco
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchData();
+    });
+
+    // Limpar o listener ao desmontar o componente
+    return () => unsubscribe();
+  }, [fetchData, navigation]);
 
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
   }
 
   const handleEditUser = (user) => {
-    navigation.navigate('EditarAlunoScreen', { uid: user.id });
+    if (user.tipoUsuario === 'professor') {
+      navigation.navigate('EditarProfessorScreen', { uid: user.id });
+    } else if (user.tipoUsuario === 'aluno') {
+      navigation.navigate('EditarAlunoScreen', { uid: user.id });
+    }
   };
 
   const renderUsuario = ({ item }) => (
@@ -88,13 +101,11 @@ export default function UsersListScreen({ navigation }) {
         <View style={styles.section}>
           <Text style={styles.subtitle}>Temas:</Text>
           {item.temas.map((temaId, index) => {
-            const id = typeof temaId === 'object' && temaId.id ? temaId.id : temaId;
-            return <Text key={index}>• {temasMap[id] ? temasMap[id] : id}</Text>;
-
+            const id = typeof temaId === 'object' && temaId?.id ? temaId.id : temaId;
+            return <Text key={index}>• {temasMap[id] || id}</Text>;
           })}
         </View>
       )}
-
 
       {Array.isArray(item.cursos) && item.cursos.length > 0 && (
         <View style={styles.section}>
@@ -102,7 +113,6 @@ export default function UsersListScreen({ navigation }) {
           {item.cursos.map((cursoId, index) => {
             const nomeCurso = cursosMap[cursoId] || cursoId;
             const periodo = item.periodos?.[cursoId];
-
             return (
               <Text key={index}>
                 • {nomeCurso}
@@ -113,17 +123,17 @@ export default function UsersListScreen({ navigation }) {
         </View>
       )}
 
-      {item.tipoUsuario === 'aluno' && projetosMap[item.uid] && (
+      {item.tipoUsuario === 'aluno' && projetosMap[item.id] && (
         <View style={styles.section}>
           <Text style={styles.subtitle}>Projetos:</Text>
-          {projetosMap[item.uid].map((projeto, index) => (
+          {projetosMap[item.id].map((projeto, index) => (
             <View key={index} style={styles.projectItem}>
               <Text>• {projeto.nomeProjeto || 'Sem título'}</Text>
               <Text>  Descrição: {projeto.descricaoProjeto || '-'}</Text>
               <Text>  Tema: {temasMap[projeto.temaId] || 'Tema não encontrado'}</Text>
               <Text>  Curso: {cursosMap[projeto.cursoId] || '-'}</Text>
               <Text>  Período: {projeto.periodo || '-'}</Text>
-              <Text>  Nota Média: {projeto.notaMedia !== undefined ? projeto.notaMedia.toFixed(2) : '-'}</Text>
+              <Text>  Nota Média: {projeto.notaMedia || 'N/A'}</Text>
             </View>
           ))}
         </View>
@@ -151,31 +161,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
   },
   loader: {
     flex: 1,
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   item: {
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc'
+    borderBottomColor: '#ccc',
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   subtitle: {
     fontWeight: '600',
-    marginTop: 10
+    marginTop: 10,
   },
   section: {
-    marginTop: 5
+    marginTop: 5,
   },
   projectItem: {
     marginLeft: 10,
-    marginTop: 5
+    marginTop: 5,
   },
   editButton: {
     marginTop: 10,
@@ -183,10 +193,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 5,
-    alignSelf: 'flex-start'
+    alignSelf: 'flex-start',
   },
   editButtonText: {
     color: '#fff',
-    fontWeight: 'bold'
-  }
+    fontWeight: 'bold',
+  },
 });
