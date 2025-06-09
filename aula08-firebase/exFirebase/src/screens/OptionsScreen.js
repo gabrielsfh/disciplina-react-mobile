@@ -68,6 +68,14 @@ export default function OptionsScreen({ navigation, route }) {
                             color="#D35400" // laranja queimado
                         />
                     </View>
+
+                    <View style={[styles.button, { marginTop: 5 }]}>
+                        <Button
+                            title="Listar Cursos"
+                            onPress={() => navigation.navigate('CursosList')}
+                            color="#D35400" // laranja queimado
+                        />
+                    </View>
                 </>
             )}
 

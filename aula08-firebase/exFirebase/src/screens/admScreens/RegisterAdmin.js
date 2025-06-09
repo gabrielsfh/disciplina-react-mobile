@@ -17,7 +17,7 @@ export default function RegisterAdmin({ navigation }) {
         }
 
         try {
-            // Verifica se o nome de usuário já está em uso
+           
             const q = query(collection(db, 'usuarios'), where('usuario', '==', usuario));
             const querySnapshot = await getDocs(q);
 
@@ -26,11 +26,11 @@ export default function RegisterAdmin({ navigation }) {
                 return;
             }
 
-            // Cria o usuário no Firebase Auth
+           
             const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
             const uid = userCredential.user.uid;
 
-            // Salva os dados no Firestore usando o UID como id do documento
+           
             await setDoc(doc(db, 'usuarios', uid), {
                 uid,
                 nome,

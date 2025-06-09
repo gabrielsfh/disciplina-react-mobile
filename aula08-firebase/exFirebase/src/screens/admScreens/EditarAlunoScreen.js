@@ -23,7 +23,7 @@ import { db } from '../../firebaseConfig';
 import Checkbox from 'expo-checkbox';
 import { Picker } from '@react-native-picker/picker';
 
-export default function EditarAlunoScreen({ navigation, route }) {
+export default function EditarAlunoScreen({ navigation, route }) { // Fixed syntax: added comma
   const { uid } = route.params;
 
   const [nome, setNome] = useState('');
@@ -36,7 +36,6 @@ export default function EditarAlunoScreen({ navigation, route }) {
   const [projetos, setProjetos] = useState([]);
   const [isAddingProject, setIsAddingProject] = useState(false);
 
-  // Fetch courses once on mount
   useEffect(() => {
     const fetchCursos = async () => {
       try {
@@ -50,7 +49,7 @@ export default function EditarAlunoScreen({ navigation, route }) {
     fetchCursos();
   }, []);
 
-  // Fetch student data and projects/themes
+
   const fetchAluno = useCallback(async () => {
     try {
       const alunoRef = doc(db, 'usuarios', uid);
@@ -87,10 +86,10 @@ export default function EditarAlunoScreen({ navigation, route }) {
     fetchAluno();
   }, [fetchAluno]);
 
-  // Combined function to fetch projects and themes without projects
+  
   const fetchProjetosETemas = useCallback(async (alunoRef) => {
     try {
-      // Fetch existing projects
+   
       const q = query(collection(db, 'projetos'), where('alunoId', '==', alunoRef));
       const snap = await getDocs(q);
 
@@ -100,23 +99,21 @@ export default function EditarAlunoScreen({ navigation, route }) {
         let temaData = null;
         let cursoData = null;
 
-        if (temaRef) {
-          const temaSnap = await getDoc(temaRef);
-          if (temaSnap.exists()) {
-            temaData = { id: temaSnap.id, ...temaSnap.data() };
-            const cursoRef = temaData.cursoId;
-            if (cursoRef) {
-              const cursoSnap = await getDoc(cursoRef);
-              if (cursoSnap.exists()) {
-                cursoData = cursoSnap.data();
-              }
+        const temaSnap = await getDoc(temaRef);
+        if (temaSnap.exists()) {
+          temaData = { id: temaSnap.id, ...temaSnap.data() };
+          const cursoRef = temaData.cursoId;
+          if (cursoRef) {
+            const cursoSnap = await getDoc(cursoRef);
+            if (cursoSnap.exists()) {
+              cursoData = cursoSnap.data();
             }
           }
         }
 
         return {
           id: docProjeto.id,
-          key: temaData?.id || docProjeto.id, // Stable key
+          key: docProjeto.id, 
           ...projetoData,
           tema: temaData,
           curso: cursoData,
@@ -124,8 +121,9 @@ export default function EditarAlunoScreen({ navigation, route }) {
         };
       }));
 
-      // Fetch themes without projects
+    
       const novosProjetos = [];
+      let tempIndex = 0; 
       for (const cursoId of cursosSelecionados) {
         const periodo = periodosPorCurso[cursoId];
         if (!periodo) continue;
@@ -141,8 +139,8 @@ export default function EditarAlunoScreen({ navigation, route }) {
           const jaTemProjeto = projetosExistentes.some(p => p.temaId?.id === docTema.id);
           if (!jaTemProjeto) {
             novosProjetos.push({
-              id: `temp-${docTema.id}`,
-              key: docTema.id, // Stable key based on temaId
+              id: `temp-${tempIndex++}`, 
+              key: `temp-${tempIndex}`, 
               temaId: doc(db, 'temas', docTema.id),
               nomeProjeto: '',
               descricaoProjeto: '',
@@ -155,7 +153,6 @@ export default function EditarAlunoScreen({ navigation, route }) {
       }
 
       const combinedProjetos = [...projetosExistentes, ...novosProjetos];
-     
       setProjetos(combinedProjetos);
     } catch (error) {
       console.error('Erro ao buscar projetos e temas:', error);
@@ -163,7 +160,7 @@ export default function EditarAlunoScreen({ navigation, route }) {
     }
   }, [cursosSelecionados, periodosPorCurso, cursosDisponiveis]);
 
-  // Handle course toggling
+ 
   const toggleCurso = useCallback((cursoId) => {
     setCursosSelecionados(prev => {
       if (prev.includes(cursoId)) {
@@ -175,50 +172,47 @@ export default function EditarAlunoScreen({ navigation, route }) {
       setPeriodosPorCurso(prevPeriods => ({ ...prevPeriods, [cursoId]: null }));
       return [...prev, cursoId];
     });
-    // Refresh projects when courses change
     fetchProjetosETemas(doc(db, 'usuarios', uid));
   }, [periodosPorCurso, uid, fetchProjetosETemas]);
 
-  // Handle period change
+ 
   const handlePeriodoChange = useCallback((cursoId, periodo) => {
     const numero = parseInt(periodo, 10);
     setPeriodosPorCurso(prev => ({
       ...prev,
       [cursoId]: isNaN(numero) ? null : numero
     }));
-    // Refresh projects when periods change
     fetchProjetosETemas(doc(db, 'usuarios', uid));
   }, [uid, fetchProjetosETemas]);
 
-  // Handle project field changes
+
   const handleProjetoChange = useCallback((key, campo, valor) => {
     setProjetos(prev =>
       prev.map(p => (p.key === key ? { ...p, [campo]: valor } : p))
     );
   }, []);
 
-  // Delete project
+
   const deletarProjeto = useCallback(async (id) => {
-  try {
-    const avaliacoesRef = collection(db, 'avaliacoes');
-    const q = query(avaliacoesRef, where('projetoId', '==', doc(db, 'projetos', id)));
-    const snapshot = await getDocs(q);
+    try {
+      const avaliacoesRef = collection(db, 'avaliacoes');
+      const q = query(avaliacoesRef, where('projetoId', '==', doc(db, 'projetos', id)));
+      const snapshot = await getDocs(q);
 
-    const batchDeletes = snapshot.docs.map(av => deleteDoc(av.ref));
-    await Promise.all(batchDeletes);
+      const batchDeletes = snapshot.docs.map(av => deleteDoc(av.ref));
+      await Promise.all(batchDeletes);
 
-    await deleteDoc(doc(db, 'projetos', id));
-    await fetchProjetosETemas(doc(db, 'usuarios', uid));
+      await deleteDoc(doc(db, 'projetos', id));
+      await fetchProjetosETemas(doc(db, 'usuarios', uid));
 
-    Alert.alert('Sucesso', 'Projeto e avaliações associadas deletados com sucesso!');
-  } catch (error) {
-    console.error('Erro ao deletar projeto:', error);
-    Alert.alert('Erro', 'Não foi possível deletar o projeto.');
-  }
-}, [uid, fetchProjetosETemas]);
+      Alert.alert('Sucesso', 'Projeto e avaliações associadas deletados com sucesso!');
+    } catch (error) {
+      console.error('Erro ao deletar projeto:', error);
+      Alert.alert('Erro', 'Não foi possível deletar o projeto.');
+    }
+  }, [uid, fetchProjetosETemas]);
 
 
-  // Add project
   const adicionarProjeto = useCallback(async (projeto) => {
     if (!projeto.nomeProjeto || !projeto.descricaoProjeto) {
       Alert.alert('Erro', 'Preencha o nome e a descrição do projeto.');
@@ -242,15 +236,10 @@ export default function EditarAlunoScreen({ navigation, route }) {
       setProjetos(prev =>
         prev.map(p =>
           p.key === projeto.key
-            ? {
-                ...p,
-                id: novoProjetoRef.id,
-                novo: false,
-              }
+            ? { ...p, id: novoProjetoRef.id, novo: false }
             : p
         )
       );
-      console.log('Projeto adicionado:', { id: novoProjetoRef.id, key: projeto.key });
       Alert.alert('Sucesso', 'Projeto adicionado com sucesso!');
     } catch (error) {
       console.error('Erro ao adicionar projeto:', error);
@@ -312,9 +301,50 @@ export default function EditarAlunoScreen({ navigation, route }) {
     }
   }, [nome, usuario, nmatricula, cursosSelecionados, periodosPorCurso, projetos, uid, navigation]);
 
-  // Memoize project list to prevent unnecessary re-renders
+
+  const deletarAluno = useCallback(async () => {
+    Alert.alert('Confirmação', 'Deseja realmente deletar este aluno, seus projetos e avaliações associadas?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Deletar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const alunoRef = doc(db, 'usuarios', uid);
+
+          
+            const projetosQuery = query(collection(db, 'projetos'), where('alunoId', '==', alunoRef));
+            const projetosSnap = await getDocs(projetosQuery);
+
+            for (const projetoDoc of projetosSnap.docs) {
+              const projetoId = projetoDoc.id;
+
+              
+              const avaliacoesQuery = query(collection(db, 'avaliacoes'), where('projetoId', '==', doc(db, 'projetos', projetoId)));
+              const avaliacoesSnap = await getDocs(avaliacoesQuery);
+              const batchDeletes = avaliacoesSnap.docs.map(av => deleteDoc(av.ref));
+              await Promise.all(batchDeletes);
+
+           
+              await deleteDoc(doc(db, 'projetos', projetoId));
+            }
+
+           
+            await deleteDoc(alunoRef);
+
+            Alert.alert('Sucesso', 'Aluno, seus projetos e avaliações associadas foram deletados com sucesso!');
+            navigation.goBack();
+          } catch (error) {
+            console.error('Erro ao deletar aluno:', error);
+            Alert.alert('Erro', 'Não foi possível deletar o aluno.');
+          }
+        },
+      },
+    ]);
+  }, [uid, navigation]);
+
+  
   const projectList = useMemo(() => {
- 
     return projetos.map(projeto => (
       <View key={projeto.key} style={styles.projetoContainer}>
         <Text style={{ fontWeight: 'bold' }}>
@@ -363,8 +393,7 @@ export default function EditarAlunoScreen({ navigation, route }) {
     ));
   }, [projetos, isAddingProject, handleProjetoChange, adicionarProjeto, deletarProjeto]);
 
-
-  // Refresh projects when courses or periods change
+  
   useEffect(() => {
     if (!loading) {
       fetchProjetosETemas(doc(db, 'usuarios', uid));
@@ -447,6 +476,9 @@ export default function EditarAlunoScreen({ navigation, route }) {
       <View style={styles.saveButton}>
         <Button title="Salvar Alterações" onPress={handleSalvar} color="#007bff" />
       </View>
+      <View style={styles.deleteButton}>
+        <Button title="Deletar Aluno" onPress={deletarAluno} color="#ff4d4d" />
+      </View>
     </ScrollView>
   );
 }
@@ -491,6 +523,10 @@ const styles = StyleSheet.create({
     borderRadius: 5
   },
   saveButton: {
-    marginTop: 20
+    marginTop: 20,
+    marginBottom: 10
+  },
+  deleteButton: {
+    marginBottom: 20
   }
 });

@@ -21,8 +21,7 @@ export default function AvaliacaoProjetos() {
       if (!userSnap.exists()) return;
 
       const avaliador = userSnap.data();
-      const temasRefs = avaliador.temas || []; // Assume que temas é um array de referências
-
+      const temasRefs = avaliador.temas || []; 
       if (temasRefs.length === 0) {
         setTemas([]);
         return;
@@ -35,7 +34,7 @@ export default function AvaliacaoProjetos() {
         snapshot.docs.map(async (docSnap) => {
           const tema = { id: docSnap.id, ...docSnap.data() };
           if (tema.cursoId) {
-            const cursoRef = tema.cursoId; // cursoId é uma Reference
+            const cursoRef = tema.cursoId;
             const cursoSnap = await getDoc(cursoRef);
             tema.nomeCurso = cursoSnap.exists() ? cursoSnap.data().nome || 'Curso desconhecido' : 'Curso desconhecido';
           } else {

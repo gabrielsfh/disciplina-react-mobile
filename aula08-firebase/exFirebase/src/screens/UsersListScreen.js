@@ -10,12 +10,10 @@ export default function UsersListScreen({ navigation }) {
   const [projetosMap, setProjetosMap] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Função para buscar os dados
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Cursos
       const cursosSnapshot = await getDocs(collection(db, 'cursos'));
       const cursos = {};
       cursosSnapshot.forEach((doc) => {
@@ -23,7 +21,6 @@ export default function UsersListScreen({ navigation }) {
       });
       setCursosMap(cursos);
 
-      // Temas
       const temasSnapshot = await getDocs(collection(db, 'temas'));
       const temas = {};
       temasSnapshot.forEach((doc) => {
@@ -31,7 +28,6 @@ export default function UsersListScreen({ navigation }) {
       });
       setTemasMap(temas);
 
-      // Projetos
       const projetosSnapshot = await getDocs(collection(db, 'projetos'));
       const projetos = {};
       projetosSnapshot.forEach((doc) => {
@@ -50,7 +46,6 @@ export default function UsersListScreen({ navigation }) {
       });
       setProjetosMap(projetos);
 
-      // Usuários
       const usuariosSnapshot = await getDocs(collection(db, 'usuarios'));
       const usersList = usuariosSnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -64,28 +59,23 @@ export default function UsersListScreen({ navigation }) {
     }
   }, []);
 
-  // Carregar dados ao montar a tela e quando ela ganhar foco
   useEffect(() => {
     fetchData();
-
-    // Listener para quando a tela ganha foco
     const unsubscribe = navigation.addListener('focus', () => {
       fetchData();
     });
-
-    // Limpar o listener ao desmontar o componente
-    return () => unsubscribe();
+    return () => unsubscribe;
   }, [fetchData, navigation]);
 
-  if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
-  }
-
   const handleEditUser = (user) => {
-    if (user.tipoUsuario === 'professor') {
+    if (user.tipoUsuario === 'administrador') {
+      navigation.navigate('EditarAdminScreen', { uid: user.id });
+    } else if (user.tipoUsuario === 'professor') {
       navigation.navigate('EditarProfessorScreen', { uid: user.id });
     } else if (user.tipoUsuario === 'aluno') {
       navigation.navigate('EditarAlunoScreen', { uid: user.id });
+    } else if (user.tipoUsuario === 'avaliador' || user.avaliador) {
+      navigation.navigate('EditarAvaliadorScreen', { uid: user.id });
     }
   };
 
@@ -94,7 +84,7 @@ export default function UsersListScreen({ navigation }) {
       <Text style={styles.title}>Usuário: {item.usuario || '-'}</Text>
       <Text>Email: {item.email || '-'}</Text>
       <Text>Nome: {item.nome || '-'}</Text>
-      <Text>Tipo: {item.tipoUsuario || '-'}</Text>
+      <Text>Tipo: {item.tipoUsuario || '-'}{item.avaliador ? ' (também avaliador)' : ''}</Text>
       {item.nmatricula && <Text>Matrícula: {item.nmatricula}</Text>}
 
       {Array.isArray(item.temas) && item.temas.length > 0 && (
@@ -144,6 +134,10 @@ export default function UsersListScreen({ navigation }) {
       </TouchableOpacity>
     </View>
   );
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
+  }
 
   return (
     <View style={styles.container}>

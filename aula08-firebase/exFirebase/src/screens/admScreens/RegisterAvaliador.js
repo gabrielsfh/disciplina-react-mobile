@@ -7,7 +7,7 @@ import { db, auth } from '../../firebaseConfig';
 import Checkbox from 'expo-checkbox';
 
 export default function RegisterAvaliador({ navigation }) {
-  const [modo, setModo] = useState('novo'); // 'novo' ou 'professor'
+  const [modo, setModo] = useState('novo'); 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [temas, setTemas] = useState([]);

@@ -8,7 +8,7 @@ import { Picker } from '@react-native-picker/picker';
 export default function EditarProfessorScreen({ route, navigation }) {
     const { uid } = route.params;
 
-    // Estados para os dados do professor
+
     const [professor, setProfessor] = useState(null);
     const [nome, setNome] = useState('');
     const [usuario, setUsuario] = useState('');
@@ -17,14 +17,14 @@ export default function EditarProfessorScreen({ route, navigation }) {
     const [cursosSelecionados, setCursosSelecionados] = useState([]);
     const [periodosPorCurso, setPeriodosPorCurso] = useState({});
 
-    // Estados para temas e projetos
+
     const [temas, setTemas] = useState([]);
     const [temaSelecionado, setTemaSelecionado] = useState(null);
     const [projetos, setProjetos] = useState([]);
     const [notas, setNotas] = useState({});
     const [notasMedias, setNotasMedias] = useState({});
 
-    // Carregar dados iniciais (inalterado, incluído para contexto)
+
     useEffect(() => {
         async function carregarDados() {
             try {
@@ -77,7 +77,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         carregarDados();
     }, [uid, navigation]);
 
-    // Funções para manipular cursos e períodos (inalteradas, incluídas para contexto)
+
     const toggleCurso = (cursoId) => {
         if (cursosSelecionados.includes(cursoId)) {
             setCursosSelecionados(cursosSelecionados.filter(id => id !== cursoId));
@@ -104,7 +104,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         });
     };
 
-    // Salvar alterações nos dados do professor (inalterado)
+
     const salvarAlteracoes = async () => {
         try {
             await updateDoc(doc(db, 'usuarios', uid), {
@@ -122,7 +122,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         }
     };
 
-    // Deletar professor (modificado para incluir remoção de professorId dos temas)
+
     const deletarProfessor = () => {
         Alert.alert('Confirmar', 'Deseja realmente deletar este professor, suas avaliações e associações com temas?', [
             { text: 'Cancelar', style: 'cancel' },
@@ -133,7 +133,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
                     try {
                         const avaliadorRef = doc(db, 'usuarios', uid);
 
-                        // 1. Deletar todas as avaliações do professor
+
                         const avaliacoesQuery = query(collection(db, 'avaliacoes'), where('avaliadorId', '==', avaliadorRef));
                         const avaliacoesSnap = await getDocs(avaliacoesQuery);
                         const projetosAtualizados = new Set();
@@ -143,7 +143,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
                             await deleteDoc(doc(db, 'avaliacoes', docAval.id));
                         }
 
-                        // 2. Recalcular a nota média para cada projeto afetado
+
                         for (const projetoId of projetosAtualizados) {
                             const projetoAvaliacoesQuery = query(collection(db, 'avaliacoes'), where('projetoId', '==', doc(db, 'projetos', projetoId)));
                             const projetoAvaliacoesSnap = await getDocs(projetoAvaliacoesQuery);
@@ -162,16 +162,16 @@ export default function EditarProfessorScreen({ route, navigation }) {
                             await updateDoc(doc(db, 'projetos', projetoId), { notaMedia: novaMedia });
                         }
 
-                        // 3. Remover professorId dos temas
+
                         const temasQuery = query(collection(db, 'temas'), where('professorId', '==', avaliadorRef));
                         const temasSnap = await getDocs(temasQuery);
                         for (const temaDoc of temasSnap.docs) {
                             await updateDoc(doc(db, 'temas', temaDoc.id), {
-                                professorId: deleteField() // Remove o campo professorId
+                                professorId: deleteField()
                             });
                         }
 
-                        // 4. Deletar o documento do professor
+
                         await deleteDoc(doc(db, 'usuarios', uid));
 
                         Alert.alert('Sucesso', 'Professor, suas avaliações e associações com temas foram deletados');
@@ -185,7 +185,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         ]);
     };
 
-    // Carregar projetos de um tema selecionado (inalterado)
+
     const carregarProjetosDoTema = async (temaId) => {
         setTemaSelecionado(temaId);
         const temaRef = doc(db, 'temas', temaId);
@@ -244,7 +244,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         }));
     };
 
-    // Salvar notas de um projeto (inalterado)
+
     const salvarNota = async (projetoId) => {
         if (!notas[projetoId] || !notas[projetoId].execucao || !notas[projetoId].criatividade || !notas[projetoId].vibes) {
             Alert.alert('Erro', 'Preencha todas as notas antes de salvar.');
@@ -284,7 +284,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         carregarProjetosDoTema(temaSelecionado);
     };
 
-    // Deletar nota de um projeto (inalterado)
+
     const deletarNota = async (projetoId) => {
         const nota = notas[projetoId];
         if (!nota || !nota.docId) {
