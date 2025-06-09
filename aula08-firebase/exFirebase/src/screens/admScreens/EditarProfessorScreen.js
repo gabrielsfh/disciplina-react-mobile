@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, ScrollView, Alert, StyleSheet, FlatList } from 'react-native';
-import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, addDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, addDoc, deleteField } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import Checkbox from 'expo-checkbox';
 import { Picker } from '@react-native-picker/picker';
@@ -24,7 +24,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
     const [notas, setNotas] = useState({});
     const [notasMedias, setNotasMedias] = useState({});
 
-    // Carregar dados iniciais
+    // Carregar dados iniciais (inalterado, incluído para contexto)
     useEffect(() => {
         async function carregarDados() {
             try {
@@ -48,7 +48,6 @@ export default function EditarProfessorScreen({ route, navigation }) {
                 const cursosDisponiveis = cursosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setCursos(cursosDisponiveis);
 
-                // Carregar temas do professor
                 const temasRefs = userData.temas || [];
                 if (temasRefs.length > 0) {
                     const temasQuery = query(collection(db, 'temas'), where('__name__', 'in', temasRefs));
@@ -78,7 +77,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         carregarDados();
     }, [uid, navigation]);
 
-    // Funções para manipular cursos e períodos
+    // Funções para manipular cursos e períodos (inalteradas, incluídas para contexto)
     const toggleCurso = (cursoId) => {
         if (cursosSelecionados.includes(cursoId)) {
             setCursosSelecionados(cursosSelecionados.filter(id => id !== cursoId));
@@ -105,7 +104,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         });
     };
 
-    // Salvar alterações nos dados do professor
+    // Salvar alterações nos dados do professor (inalterado)
     const salvarAlteracoes = async () => {
         try {
             await updateDoc(doc(db, 'usuarios', uid), {
@@ -123,17 +122,59 @@ export default function EditarProfessorScreen({ route, navigation }) {
         }
     };
 
-    // Deletar professor
+    // Deletar professor (modificado para incluir remoção de professorId dos temas)
     const deletarProfessor = () => {
-        Alert.alert('Confirmar', 'Deseja realmente deletar este professor?', [
+        Alert.alert('Confirmar', 'Deseja realmente deletar este professor, suas avaliações e associações com temas?', [
             { text: 'Cancelar', style: 'cancel' },
             {
                 text: 'Deletar',
                 style: 'destructive',
                 onPress: async () => {
                     try {
+                        const avaliadorRef = doc(db, 'usuarios', uid);
+
+                        // 1. Deletar todas as avaliações do professor
+                        const avaliacoesQuery = query(collection(db, 'avaliacoes'), where('avaliadorId', '==', avaliadorRef));
+                        const avaliacoesSnap = await getDocs(avaliacoesQuery);
+                        const projetosAtualizados = new Set();
+                        for (const docAval of avaliacoesSnap.docs) {
+                            const projetoId = docAval.data().projetoId.id;
+                            projetosAtualizados.add(projetoId);
+                            await deleteDoc(doc(db, 'avaliacoes', docAval.id));
+                        }
+
+                        // 2. Recalcular a nota média para cada projeto afetado
+                        for (const projetoId of projetosAtualizados) {
+                            const projetoAvaliacoesQuery = query(collection(db, 'avaliacoes'), where('projetoId', '==', doc(db, 'projetos', projetoId)));
+                            const projetoAvaliacoesSnap = await getDocs(projetoAvaliacoesQuery);
+                            let soma = 0;
+                            let count = 0;
+                            projetoAvaliacoesSnap.forEach((docAval) => {
+                                const data = docAval.data();
+                                const e = Number(data.execucao || 0);
+                                const c = Number(data.criatividade || 0);
+                                const v = Number(data.vibes || 0);
+                                const media = (e + c + v) / 3;
+                                soma += media;
+                                count++;
+                            });
+                            const novaMedia = count > 0 ? (soma / count).toFixed(2) : '0.00';
+                            await updateDoc(doc(db, 'projetos', projetoId), { notaMedia: novaMedia });
+                        }
+
+                        // 3. Remover professorId dos temas
+                        const temasQuery = query(collection(db, 'temas'), where('professorId', '==', avaliadorRef));
+                        const temasSnap = await getDocs(temasQuery);
+                        for (const temaDoc of temasSnap.docs) {
+                            await updateDoc(doc(db, 'temas', temaDoc.id), {
+                                professorId: deleteField() // Remove o campo professorId
+                            });
+                        }
+
+                        // 4. Deletar o documento do professor
                         await deleteDoc(doc(db, 'usuarios', uid));
-                        Alert.alert('Sucesso', 'Professor deletado');
+
+                        Alert.alert('Sucesso', 'Professor, suas avaliações e associações com temas foram deletados');
                         navigation.goBack();
                     } catch (err) {
                         console.error(err);
@@ -144,7 +185,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         ]);
     };
 
-    // Carregar projetos de um tema selecionado
+    // Carregar projetos de um tema selecionado (inalterado)
     const carregarProjetosDoTema = async (temaId) => {
         setTemaSelecionado(temaId);
         const temaRef = doc(db, 'temas', temaId);
@@ -170,7 +211,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
             const media = (e + c + v) / 3;
 
             if (data.avaliadorId.id === uid) {
-                notasDoAvaliador[pId] = { execucao: e, criatividade: c, vibes: v };
+                notasDoAvaliador[pId] = { execucao: e, criatividade: c, vibes: v, docId: docAval.id };
             }
 
             if (!somaNotas[pId]) {
@@ -183,7 +224,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
 
         const medias = {};
         for (const pId of Object.keys(somaNotas)) {
-            medias[pId] = (somaNotas[pId] / contagemNotas[pId]).toFixed(2);
+            medias[pId] = contagemNotas[pId] > 0 ? (somaNotas[pId] / contagemNotas[pId]).toFixed(2) : '0.00';
             const projetoRef = doc(db, 'projetos', pId);
             await updateDoc(projetoRef, { notaMedia: medias[pId] });
         }
@@ -192,7 +233,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         setNotasMedias(medias);
     };
 
-    // Manipular mudança de notas
+    // Manipular mudança de notas (inalterado)
     const handleNotaChange = (projetoId, tipo, valor) => {
         setNotas(prev => ({
             ...prev,
@@ -203,7 +244,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
         }));
     };
 
-    // Salvar notas de um projeto
+    // Salvar notas de um projeto (inalterado)
     const salvarNota = async (projetoId) => {
         if (!notas[projetoId] || !notas[projetoId].execucao || !notas[projetoId].criatividade || !notas[projetoId].vibes) {
             Alert.alert('Erro', 'Preencha todas as notas antes de salvar.');
@@ -243,11 +284,52 @@ export default function EditarProfessorScreen({ route, navigation }) {
         carregarProjetosDoTema(temaSelecionado);
     };
 
+    // Deletar nota de um projeto (inalterado)
+    const deletarNota = async (projetoId) => {
+        const nota = notas[projetoId];
+        if (!nota || !nota.docId) {
+            Alert.alert('Erro', 'Não há nota para deletar.');
+            return;
+        }
+
+        try {
+            await deleteDoc(doc(db, 'avaliacoes', nota.docId));
+
+            const avaliacoesQuery = query(collection(db, 'avaliacoes'), where('projetoId', '==', doc(db, 'projetos', projetoId)));
+            const avaliacoesSnap = await getDocs(avaliacoesQuery);
+            let soma = 0;
+            let count = 0;
+            avaliacoesSnap.forEach((docAval) => {
+                const data = docAval.data();
+                const e = Number(data.execucao || 0);
+                const c = Number(data.criatividade || 0);
+                const v = Number(data.vibes || 0);
+                const media = (e + c + v) / 3;
+                soma += media;
+                count++;
+            });
+            const novaMedia = count > 0 ? (soma / count).toFixed(2) : '0.00';
+
+            await updateDoc(doc(db, 'projetos', projetoId), { notaMedia: novaMedia });
+
+            setNotas(prev => {
+                const updated = { ...prev };
+                delete updated[projetoId];
+                return updated;
+            });
+            setNotasMedias(prev => ({ ...prev, [projetoId]: novaMedia }));
+
+            Alert.alert('Sucesso', 'Nota deletada com sucesso!');
+        } catch (err) {
+            console.error(err);
+            Alert.alert('Erro ao deletar nota');
+        }
+    };
+
     if (!professor) return <Text>Carregando dados do professor...</Text>;
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            {/* Campos de edição do professor */}
             <Text style={styles.label}>Nome:</Text>
             <TextInput value={nome} onChangeText={setNome} style={styles.input} />
 
@@ -283,7 +365,6 @@ export default function EditarProfessorScreen({ route, navigation }) {
                 </View>
             ))}
 
-            {/* Seção de temas e projetos */}
             <Text style={styles.label}>Temas Associados:</Text>
             {temas.map(t => (
                 <Button
@@ -309,9 +390,12 @@ export default function EditarProfessorScreen({ route, navigation }) {
                                     <Text>Nota Média: {notasMedias[item.id] || 'N/A'}</Text>
 
                                     {nota.execucao && nota.criatividade && nota.vibes ? (
-                                        <Text>
-                                            Sua nota média: {((Number(nota.execucao) + Number(nota.criatividade) + Number(nota.vibes)) / 3).toFixed(2)}
-                                        </Text>
+                                        <>
+                                            <Text>
+                                                Sua nota média: {((Number(nota.execucao) + Number(nota.criatividade) + Number(nota.vibes)) / 3).toFixed(2)}
+                                            </Text>
+                                            <Button title="Deletar Nota" color="red" onPress={() => deletarNota(item.id)} />
+                                        </>
                                     ) : (
                                         <Text>Você ainda não avaliou este projeto.</Text>
                                     )}
@@ -354,7 +438,6 @@ export default function EditarProfessorScreen({ route, navigation }) {
                 </>
             )}
 
-            {/* Botões de ação */}
             <View style={{ marginVertical: 20 }}>
                 <Button title="Salvar Alterações" onPress={salvarAlteracoes} />
             </View>
@@ -365,7 +448,7 @@ export default function EditarProfessorScreen({ route, navigation }) {
     );
 }
 
-// Estilos
+// Estilos (inalterados)
 const styles = StyleSheet.create({
     container: {
         padding: 15,
